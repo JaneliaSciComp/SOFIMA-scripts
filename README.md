@@ -3,7 +3,7 @@ wrapper scripts for SOFIMA to batch jobs to the janelia cluster.
 the entry point is em-alignment.sh, which submits two jobs, the first
 (em-alignment1.py) handles the GPU intensive portions of the algorithm, and a
 second dependent one (em-alignment2.py) which uses only the CPU and also a lot
-of RAM.
+of RAM.  data loading and saving code is in data.py.
 
 # installation
 
@@ -24,9 +24,8 @@ code which do the plotting if problems arise.
 manually edit em-alignment.sh to set `basepath` to the location of this
 repository, and the arguments to `bsub` to the number of slots required, etc.
 
-manually edit `em-alignment{1,2}.py` to set `zbase` to the location of your
-data and the last (3rd) indices into `ttop` and `tbot` to the two slices you
-want to align.
+manually edit `data.py` to set `zbase` to the location of your data and `itop`
+and `ibot` to the two slices you want to align.
 
 then execute: `./em-alignment.sh <patch-size> <stride> <batch-size>`
 
