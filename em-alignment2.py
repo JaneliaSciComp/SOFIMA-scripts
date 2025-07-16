@@ -5,8 +5,9 @@
 # this second part only uses the CPU (and also a lot of RAM).  it depends on the
 # output of em-alignment1.py
 
-# usage : ./em-alignment2.py <patch-size> <stride>
+# usage : ./em-alignment2.py <data-loader> <patch-size> <stride>
 
+import os
 import sys
 from concurrent import futures
 import time
@@ -20,20 +21,21 @@ from sofima import flow_field
 from sofima import flow_utils
 from sofima import map_utils
 
-import data
+import importlib
 
-patch_size, stride = sys.argv[1:]
+data_loader, patch_size, stride = sys.argv[1:]
 patch_size = int(patch_size)
 stride = int(stride)
 
+print("data_loader =", data_loader)
 print("patch_size =", patch_size)
 print("stride =", stride)
+
+data = importlib.import_module(os.path.basename(data_loader))
 
 params = '.patch'+str(patch_size)+'.stride'+str(stride)
 
 flow, mesh = data.load_flow_mesh(params)
-
-mesh = np.array(mesh.read().result())
 
 box1x = bounding_box.BoundingBox(start=(0, 0, 0), size=(flow.shape[-1], flow.shape[-2], 1))
 
