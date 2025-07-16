@@ -8,7 +8,6 @@
 
 import os
 import sys
-from concurrent import futures
 import time
 
 import jax

@@ -9,16 +9,11 @@
 
 import os
 import sys
-from concurrent import futures
 import time
 
 import jax
-import jax.numpy as jnp
-import numpy as np
 
 from connectomics.common import bounding_box
-from sofima import flow_field
-from sofima import flow_utils
 from sofima import map_utils
 
 import importlib
@@ -42,7 +37,7 @@ box1x = bounding_box.BoundingBox(start=(0, 0, 0), size=(flow.shape[-1], flow.sha
 # Image warping requires an inverse coordinate map
 # does NOT use GPU, but does use a lot of RAM
 t0 = time.time()
-inv_map = map_utils.invert_map(mesh, box1x, box1x, stride)
+invmap = map_utils.invert_map(mesh, box1x, box1x, stride)
 print("invert_map took", time.time() - t0, "sec")
 
-data.save_map(inv_map, params)
+data.save_map(invmap, params)
