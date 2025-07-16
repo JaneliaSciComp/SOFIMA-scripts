@@ -4,8 +4,9 @@
 
 # this first part just does the GPU intensive stuff
 
-# usage: ./em-alignment1.py <patch-size> <stride> <batch-size>
+# usage: ./em-alignment1.py <data-loader> <patch-size> <stride> <batch-size>
 
+import os
 import sys
 from concurrent import futures
 import time
@@ -19,16 +20,19 @@ from sofima import flow_utils
 from sofima import map_utils
 from sofima import mesh
 
-import data
+import importlib
 
-patch_size, stride, batch_size = sys.argv[1:]
+data_loader, patch_size, stride, batch_size = sys.argv[1:]
 patch_size = int(patch_size)
 stride = int(stride)
 batch_size = int(batch_size)
 
+print("data_loader =", data_loader)
 print("patch_size =", patch_size)
 print("stride =", stride)
 print("batch_size =", batch_size)
+
+data = importlib.import_module(os.path.basename(data_loader))
 
 ttop, tbot = data.load_data()
 
