@@ -16,8 +16,8 @@ pip install git+https://github.com/google-research/sofima
 
 sofima also installs numpy and connectomics which these scripts directly use
 
-matplotlib is needed only for debugging purposes.  uncomment the lines of
-code which do the plotting if problems arise.
+matplotlib is needed only for testing purposes.  see em-alignment3.py and
+development section below.
 
 # basic use
 
@@ -43,3 +43,10 @@ designed to only align the bottom of one 3D block to the top of another
 uses the zarr folder of the input data as scratch space for intermediate results 
 
 flow fields are only calculated at a single resolution
+
+# development
+
+unit tests are in em-alignment3.py and use data-test.py.  the following figure
+should be generated:
+
+![output of unit tests](overlay.png)
