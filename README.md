@@ -5,6 +5,9 @@ the entry point is 2d-align.sh, which submits two jobs, the first
 second dependent one (2d-invmap.py) which uses only the CPU and also a lot
 of RAM.  data loading and saving code is in a plugin (see data-\*.py).
 
+a similar workflow exists for 3d data, which aligns the overlapping portions of
+two volumes instead of just two adjacent slices.
+
 # installation
 
 ```
@@ -16,7 +19,7 @@ pip install git+https://github.com/google-research/sofima
 
 sofima also installs numpy and connectomics which these scripts directly use
 
-matplotlib is needed only for testing purposes.  see 2d-test.py and the
+matplotlib is needed only for testing purposes.  see {2,3}d-test.py and the
 development section below.
 
 # basic use
@@ -47,7 +50,7 @@ flow fields are only calculated at a single resolution
 
 # development
 
-unit tests are in 2d-test.py and use data-test-2d.py.  the following figure
-should be generated:
+unit tests are in {2,3}d-test.py and use data-test-{2,3}d.py.  for 2d-test.py
+the following figure should be generated:
 
 ![output of unit tests](overlay.png)
