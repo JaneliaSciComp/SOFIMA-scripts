@@ -1,8 +1,8 @@
 # to run unit tests:
 #
-# em-alignment1.py data-test 16 8 1
-# em-alignment2.py data-test 16 8
-# em-alignment3.py data-test 16 8
+# 2d-flow-mesh.py data-test-2d 16 8 1
+# 2d-invmap.py data-test-2d 16 8
+# 2d-test.py data-test-2d 16 8
 
 import os
 import numpy as np
