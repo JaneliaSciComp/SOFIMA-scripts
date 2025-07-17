@@ -4,7 +4,7 @@
 
 # this first part just does the GPU intensive stuff
 
-# usage: ./em-alignment1.py <data-loader> <patch-size> <stride> <batch-size>
+# usage: ./2d-flow-mesh.py <data-loader> <patch-size> <stride> <batch-size>
 
 import os
 import sys

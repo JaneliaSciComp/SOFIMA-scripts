@@ -1,7 +1,7 @@
-# ./em-alignment.sh <data-loader> <patch-size> <stride> <batch-size>
+# ./2d-align.sh <data-loader> <patch-size> <stride> <batch-size>
 
 basepath=/groups/scicompsoft/home/arthurb/projects/multi-sem
-logfile=$basepath/em-alignment-$1-$2-$3-$4.log
+logfile=$basepath/2d-align-$1-$2-$3-$4.log
 jobid_regex='Job <\([0-9]*\)> '
 
 # -n9 needed for 160,32,64 and 150k^2 data

@@ -4,7 +4,7 @@
 
 # generate overlapped images to test that everything works
 
-# usage: ./em-alignment3.py <data-loader> <patch-size> <stride>
+# usage: ./2d-test.py <data-loader> <patch-size> <stride>
 
 import os
 import numpy as np

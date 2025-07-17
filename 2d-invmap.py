@@ -3,9 +3,9 @@
 # a derivative of https://github.com/google-research/sofima/blob/main/notebooks/em_alignment.ipynb
 
 # this second part only uses the CPU (and also a lot of RAM).  it depends on the
-# output of em-alignment1.py
+# output of 2d-flow-mesh.py
 
-# usage : ./em-alignment2.py <data-loader> <patch-size> <stride>
+# usage : ./2d-invmap.py <data-loader> <patch-size> <stride>
 
 import os
 import sys
