@@ -27,7 +27,6 @@ data = importlib.import_module(os.path.basename(data_loader))
 params = '.patch'+str(patch_size)+'.stride'+str(stride)
 
 flow, mesh = data.load_flow_mesh(params)
-
 invmap = data.load_map(params)
 
 ttop, tbot = data.load_data()
@@ -44,7 +43,7 @@ image = np.transpose(tbot_crop[:,:,np.newaxis,np.newaxis], [3,2,0,1])
 
 box1x = bounding_box.BoundingBox(start=(0, 0, 0), size=(flow.shape[-1], flow.shape[-2], 1))
 warped.append(warp.warp_subvolume(image, image_box,
-                                  invmap[:, 1:2, ...], box1x, stride,
+                                  invmap, box1x, stride,
                                   out_box, 'lanczos', parallelism=1)[0, ...])
 
 img_shape = (warped[0].shape[1], warped[0].shape[2], 3)
