@@ -73,7 +73,7 @@ def load_flow_mesh(params):
         }).result()
     return flow, mesh
 
-def save_map(invmap, params):
+def save_invmap(invmap, params):
     invmap_zarr = ts.open({
         'driver': 'zarr',
         'kvstore': {"driver":"file", "path":os.path.join(zbase, '3.invmap'+params+'.zarr')},
@@ -88,7 +88,7 @@ def save_map(invmap, params):
         }).result()
     invmap_zarr.write(invmap).result()
 
-def load_map(params):
+def load_invmap(params):
     invmap = ts.open({
         'driver': 'zarr',
         'kvstore': {"driver":"file", "path":os.path.join(zbase, '3.invmap'+params+'.zarr')},

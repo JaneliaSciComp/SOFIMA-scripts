@@ -4,7 +4,7 @@
 
 # generate overlapped images to test that everything works
 
-# usage: ./2d-test.py <data-loader> <patch-size> <stride>
+# usage: ./2-planes-test.py <data-loader> <patch-size> <stride>
 
 import os
 import numpy as np
@@ -27,7 +27,7 @@ data = importlib.import_module(os.path.basename(data_loader))
 params = '.patch'+str(patch_size)+'.stride'+str(stride)
 
 flow, mesh = data.load_flow_mesh(params)
-invmap = data.load_map(params)
+invmap = data.load_invmap(params)
 
 ttop, tbot = data.load_data()
 

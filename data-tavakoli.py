@@ -36,9 +36,9 @@ def load_flow_mesh(params):
     mesh = np.load('2.mesh'+params+'.npy')
     return flow, mesh
 
-def save_map(invmap, params):
+def save_invmap(invmap, params):
     np.save('3.invmap'+params+'.npy', invmap)
 
-def load_map(params):
+def load_invmap(params):
     invmap = np.load('3.invmap'+params+'.npy')
     return invmap

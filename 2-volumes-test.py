@@ -4,7 +4,7 @@
 
 # generate overlapped images to test that everything works
 
-# usage: ./3d-test.py <data-loader> <patch-size> <stride>
+# usage: ./2-volumes-test.py <data-loader> <patch-size> <stride>
 
 import os
 import numpy as np
@@ -27,7 +27,7 @@ data = importlib.import_module(os.path.basename(data_loader))
 params = '.patch'+str(patch_size)+'.stride'+str(stride)
 
 flow, mesh = data.load_flow_mesh(params)
-invmap = data.load_map(params)
+invmap = data.load_invmap(params)
 
 ttop, tbot = data.load_data()
 
@@ -107,7 +107,7 @@ set_axis(axs[1,1], 'warp bot')
 axs[1,2].imshow(warp_ovr, vmin=0, vmax=1)
 set_axis(axs[1,2], 'warp ovr')
 plt.tight_layout()
-plt.savefig("overlay-3d-xy.png")
+plt.savefig("overlay-xy.png")
 
 # XZ
 img_shape = (warped[0].shape[0], warped[0].shape[2], 3)
@@ -162,4 +162,4 @@ set_axis(axs[1,1], 'warp bot')
 axs[1,2].imshow(warp_ovr, vmin=0, vmax=1)
 set_axis(axs[1,2], 'warp ovr')
 plt.tight_layout()
-plt.savefig("overlay-3d-xz.png")
+plt.savefig("overlay-xz.png")

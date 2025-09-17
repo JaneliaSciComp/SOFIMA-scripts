@@ -3,9 +3,9 @@
 # a derivative of https://github.com/google-research/sofima/blob/main/notebooks/em_alignment.ipynb
 
 # this second part only uses the CPU (and also a lot of RAM).  it depends on the
-# output of 2d-flow-mesh.py
+# output of 2-planes-flow-mesh.py
 
-# usage : ./2d-invmap.py <data-loader> <patch-size> <stride>
+# usage : ./2-planes-invmap.py <data-loader> <patch-size> <stride>
 
 import os
 import sys
@@ -40,4 +40,4 @@ t0 = time.time()
 invmap = map_utils.invert_map(mesh, box1x, box1x, stride)
 print("invert_map took", time.time() - t0, "sec")
 
-data.save_map(invmap, params)
+data.save_invmap(invmap, params)

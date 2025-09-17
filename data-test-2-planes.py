@@ -1,8 +1,8 @@
 # to run unit tests:
 #
-# 2d-flow-mesh.py data-test-2d 16 8 1
-# 2d-invmap.py data-test-2d 16 8
-# 2d-test.py data-test-2d 16 8
+# 2-planes-flow-mesh.py data-test-2-planes 16 8 1
+# 2-planes-invmap.py data-test-2-planes 16 8
+# 2-planes-test.py data-test-2-planes 16 8
 
 import os
 import numpy as np
@@ -39,9 +39,9 @@ def load_flow_mesh(params):
     mesh = np.load('2.mesh'+params+'.npy')
     return flow, mesh
 
-def save_map(invmap, params):
+def save_invmap(invmap, params):
     np.save('3.invmap'+params+'.npy', invmap)
 
-def load_map(params):
+def load_invmap(params):
     invmap = np.load('3.invmap'+params+'.npy')
     return invmap
