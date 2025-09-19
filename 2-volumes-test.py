@@ -2,21 +2,29 @@
 
 # a derivative of https://github.com/google-research/sofima/blob/main/notebooks/em_alignment.ipynb
 
-# generate overlapped images to test that everything works
-
-# usage: ./2-volumes-test.py <data-loader> <patch-size> <stride>
-
 import os
+import argparse
+import importlib
+
 import numpy as np
 from connectomics.common import bounding_box
 from sofima import warp
 import matplotlib.pyplot as plt
 
-import importlib
 
-data_loader, patch_size, stride = sys.argv[1:]
-patch_size = int(patch_size)
-stride = int(stride)
+# Parse command line arguments
+parser = argparse.ArgumentParser(
+    description="Generate overlapped images to test that everything works"
+)
+parser.add_argument('data_loader', help='Data loader module name')
+parser.add_argument('patch_size', type=int, help='Patch size for processing')
+parser.add_argument('stride', type=int, help='Stride value for processing')
+
+args = parser.parse_args()
+
+data_loader = args.data_loader
+patch_size = args.patch_size
+stride = args.stride
 
 print("data_loader =", data_loader)
 print("patch_size =", patch_size)
@@ -81,7 +89,7 @@ warp_ovr[:,:,2] = qscale(warped[1][:,:,iz])
 def set_axis(ax, t):
     ax.set_title(t)
     ax.set_xlabel('x'); ax.set_ylabel('y')
-    ax.set_xticklabels([]);  ax.set_yticklabels([]);
+    ax.set_xticklabels([]);  ax.set_yticklabels([])
     ax.set_xticks([]);  ax.set_yticks([]);
 
 fig, axs = plt.subplots(2, 3, figsize=(6, 8))
@@ -136,8 +144,8 @@ warp_ovr[:,:,2] = qscale(warped[1][:,iy,:])
 def set_axis(ax, t):
     ax.set_title(t)
     ax.set_xlabel('x'); ax.set_ylabel('z')
-    ax.set_xticklabels([]);  ax.set_yticklabels([]);
-    ax.set_xticks([]);  ax.set_yticks([]);
+    ax.set_xticklabels([]);  ax.set_yticklabels([])
+    ax.set_xticks([]);  ax.set_yticks([])
 
 fig, axs = plt.subplots(2, 3, figsize=(6, 8))
 axs[0,0].imshow(orig_top, vmin=0, vmax=1)
