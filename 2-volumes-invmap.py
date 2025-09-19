@@ -5,22 +5,28 @@
 # this second part only uses the CPU (and also a lot of RAM).  it depends on the
 # output of 2-volumes-flow-mesh.py
 
-# usage : ./2-volumes-invmap.py <patch-size> <stride>
-
 import os
-import sys
+import argparse
 import time
-
-import jax
+import importlib
 
 from connectomics.common import bounding_box
 from sofima import map_utils
 
-import importlib
 
-data_loader, patch_size, stride = sys.argv[1:]
-patch_size = int(patch_size)
-stride = int(stride)
+# Parse command line arguments
+parser = argparse.ArgumentParser(
+    description="CPU-intensive inverse mapping - depends on output of 2-volumes-flow-mesh.py"
+)
+parser.add_argument('data_loader', help='Data loader module name')
+parser.add_argument('patch_size', type=int, help='Patch size for processing')
+parser.add_argument('stride', type=int, help='Stride value for processing')
+
+args = parser.parse_args()
+
+data_loader = args.data_loader
+patch_size = args.patch_size
+stride = args.stride
 
 print("data_loader =", data_loader)
 print("patch_size =", patch_size)

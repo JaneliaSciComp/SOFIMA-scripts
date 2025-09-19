@@ -6,27 +6,32 @@
 
 # this first part just does the GPU intensive stuff
 
-# usage: ./2-planes-flow-mesh.py <data-loader> <patch-size> <stride> <batch-size>
-
 import os
-import sys
+import argparse
 import time
-
-import jax
-import jax.numpy as jnp
-import numpy as np
-
-from sofima import flow_field
-from sofima import flow_utils
-from sofima import map_utils
-from sofima import mesh
-
 import importlib
 
-data_loader, patch_size, stride, batch_size = sys.argv[1:]
-patch_size = int(patch_size)
-stride = int(stride)
-batch_size = int(batch_size)
+import numpy as np
+from sofima import flow_field
+from sofima import flow_utils
+from sofima import mesh
+
+
+# Parse command line arguments
+parser = argparse.ArgumentParser(
+    description="Takes a pair of slices and aligns them - GPU intensive processing"
+)
+parser.add_argument('data_loader', help='Data loader module name')
+parser.add_argument('patch_size', type=int, help='Patch size for processing')
+parser.add_argument('stride', type=int, help='Stride value for processing')
+parser.add_argument('batch_size', type=int, help='Batch size for processing')
+
+args = parser.parse_args()
+
+data_loader = args.data_loader
+patch_size = args.patch_size
+stride = args.stride
+batch_size = args.batch_size
 
 print("data_loader =", data_loader)
 print("patch_size =", patch_size)
@@ -72,7 +77,7 @@ print("clean_flow took", time.time() - t0, "sec")
 # find a configuration of the imagery that is compatible with the estimated
 # flow field and preserves the original geometry as much as possible.
 config = mesh.IntegrationConfig(dt=0.001, gamma=0.0, k0=0.01, k=0.1, stride=(stride, stride),
-                                num_iters=1000, max_iters=100000, 
+                                num_iters=1000, max_iters=100000,
                                 stop_v_max=0.005, dt_max=1000, start_cap=0.01,
                                 final_cap=10, prefer_orig_order=True)
 

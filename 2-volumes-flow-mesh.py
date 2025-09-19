@@ -6,28 +6,33 @@
 
 # this first part just does the GPU intensive stuff
 
-# usage: ./2-volumes-flow-mesh.py <patch-size> <stride> <batch-size>
-
 import os
-import sys
+import argparse
 import time
+import importlib
 
-import jax
-import jax.numpy as jnp
 import numpy as np
-
 from sofima import flow_field
 from sofima import flow_utils
-from sofima import map_utils
 from sofima import mesh
 from sofima.mesh import elastic_mesh_3d
 
-import importlib
 
-data_loader, patch_size, stride, batch_size = sys.argv[1:]
-patch_size = int(patch_size)
-stride = int(stride)
-batch_size = int(batch_size)
+# Parse command line arguments
+parser = argparse.ArgumentParser(
+    description="Takes a pair of overlapping volumes and aligns them - GPU intensive processing"
+)
+parser.add_argument('data_loader', help='Data loader module name')
+parser.add_argument('patch_size', type=int, help='Patch size for processing')
+parser.add_argument('stride', type=int, help='Stride value for processing')
+parser.add_argument('batch_size', type=int, help='Batch size for processing')
+
+args = parser.parse_args()
+
+data_loader = args.data_loader
+patch_size = args.patch_size
+stride = args.stride
+batch_size = args.batch_size
 
 print("data_loader =", data_loader)
 print("patch_size =", patch_size)
