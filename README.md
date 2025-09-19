@@ -10,17 +10,13 @@ instead of just two adjacent slices.
 
 # installation
 
-```
-conda create -n multi-sem
-conda install jax tensorstore
-conda install matplotlib  # optional
-pip install git+https://github.com/google-research/sofima
-```
+You need a working conda installation, e.g., through [miniforge](https://github.com/conda-forge/miniforge).
+Then, from the root of this repository, run:
 
-sofima also installs numpy and connectomics which these scripts directly use
-
-matplotlib is needed only for testing purposes.  see 2-{planes,volumes}-test.py
-and the development section below.
+```
+conda env create -f environment.yaml
+conda activate multi-sem
+```
 
 # basic use
 
