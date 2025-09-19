@@ -4,7 +4,6 @@
 # 2-volumes-invmap.py data-test-2-volumes 32 8
 # 2-volumes-test.py data-test-2-volumes 32 8
 
-import os
 import numpy as np
 
 shift=4

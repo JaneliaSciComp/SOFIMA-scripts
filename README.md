@@ -50,8 +50,28 @@ flow fields are only calculated at a single resolution
 
 # development
 
-unit tests are in 2-{planes,volumes}-test.py and use
-data-test-2-{planes,volumes}.py.  for 2-planes-test.py the following figure
-should be generated:
+Unit tests are in 2-{planes,volumes}-test.py and use data-test-2-{planes,volumes}.py.
+
+### Aligning two planes
+
+Run
+```bash
+python 2-planes-flow-mesh.py data-test-2-planes 16 8 1
+python 2-planes-invmap.py data-test-2-planes 16 8
+python 2-planes-test.py data-test-2-planes 16 8
+```
+  
+The following figure should be generated (overlay.png):
 
 ![output of unit tests](overlay.png)
+
+### Aligning a full volume
+
+Run
+```bash
+python 2-volumes-flow-mesh.py data-test-2-volumes 32 8 2
+python 2-volumes-invmap.py data-test-2-volumes 32 8
+python 2-volumes-test.py data-test-2-volumes 32 8
+```
+
+There should be two figures generated (overlay-xy.png and overlay-xz.png) that show the alignment in XY and XZ planes, respectively.

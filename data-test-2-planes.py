@@ -4,7 +4,6 @@
 # 2-planes-invmap.py data-test-2-planes 16 8
 # 2-planes-test.py data-test-2-planes 16 8
 
-import os
 import numpy as np
 
 shift=8
