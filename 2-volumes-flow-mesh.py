@@ -22,10 +22,25 @@ from sofima.mesh import elastic_mesh_3d
 parser = argparse.ArgumentParser(
     description="Takes a pair of overlapping volumes and aligns them - GPU intensive processing"
 )
-parser.add_argument('data_loader', help='Data loader module name')
-parser.add_argument('patch_size', type=int, help='Patch size for processing')
-parser.add_argument('stride', type=int, help='Stride value for processing')
-parser.add_argument('batch_size', type=int, help='Batch size for processing')
+parser.add_argument(
+    "data_loader",
+    help="Data loader module name, e.g., data-test-2-planes"
+)
+parser.add_argument(
+    "patch_size",
+    type=int,
+    help="Side length of (square) patch for processing (in pixels, e.g., 32)",
+)
+parser.add_argument(
+    "stride",
+    type=int,
+    help="Distance of adjacent patches (in pixels, e.g., 8)"
+)
+parser.add_argument(
+    'batch_size',
+    type=int,
+    help='Batch size for processing'
+)
 
 args = parser.parse_args()
 
