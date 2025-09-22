@@ -8,9 +8,13 @@ of RAM.  data loading and saving code is in a plugin (see data-\*.py).
 a similar workflow exists for two volumes, which aligns the overlapping portions
 instead of just two adjacent slices.
 
+multiple planes each with multiple tiles can be stitched and aligned with
+1-plane-\* and N-planes-\*, respectively.
+
 # installation
 
-You need a working conda installation, e.g., through [miniforge](https://github.com/conda-forge/miniforge).
+You need a working conda installation, e.g., through
+[miniforge](https://github.com/conda-forge/miniforge).
 Then, from the root of this repository, run:
 
 ```
@@ -70,4 +74,29 @@ python 2-volumes-invmap.py data-test-2-volumes 32 8
 python 2-volumes-test.py data-test-2-volumes 32 8
 ```
 
-There should be two figures generated (overlay-xy.png and overlay-xz.png) that show the alignment in XY and XZ planes, respectively.
+There should be two figures generated (overlay-xy.png and overlay-xz.png) that
+show the alignment in XY and XZ planes, respectively.
+
+### aligning the aphid salivary gland data set
+
+edit "data-aphid-1-plane.py" to specify `outpath`.  and note that a 2x3
+arrangement of tiles within a plane is currently assumed.  then run
+
+```bash
+1-plane-stitch.sh 1 100 10 10700 10780
+```
+
+wait for the cluster jobs to finish (a few minutes).
+
+similarly edit "data-aphid-N-planes.py" to specify `basepath`.  and note that
+`url` is hard-coded for the aphid dataset.  then on your workstation run
+
+```bash
+N-planes-flow.py "data-aphid-N-planes" 10770 10780 100 20 256
+N-planes-mesh.py "data-aphid-N-planes" 10770 10780 100 20 256
+N-planes-invmap.py "data-aphid-N-planes" 10770 10780 100 20
+N-planes-warp.py "data-aphid-N-planes" 10770 10780 100 20
+```
+
+each step in the above saves intermediates results to an .npy file.  the final
+output is a zarr.

@@ -2,11 +2,13 @@ name: multi-sem
 channels:
   - conda-forge
 dependencies:
+  - h5py
   - jax>=0.2.25
   - matplotlib
   - numpy==2.2.6
   - pip
   - python>=3.10
+  - requests
   - scikit-image>=0.17.2
   - pip:
     - connectomics
