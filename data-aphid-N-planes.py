@@ -5,7 +5,7 @@ import skimage.io as skio
 import numpy as np
 import tensorstore as ts
 
-basepath='/nrs/cellmap/arthurb/aphid'
+basepath='/nrs/cellmap/arthurb'
 
 url='http://em-services-1.int.janelia.org:8080/render-ws/v1/owner/cellmap/project/jrc_aphid_salivary_1/stack/v2_acquire'
 

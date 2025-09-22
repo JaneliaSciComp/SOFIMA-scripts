@@ -8,6 +8,7 @@
 
 # usage: ./N-planes-flow.py <data-loader> <min-z> <max-z> <patch-size> <stride> <batch-size>
 
+import sys
 import os
 from concurrent import futures
 import time

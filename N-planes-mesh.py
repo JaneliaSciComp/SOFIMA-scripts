@@ -8,8 +8,8 @@
 # output of N-planes-flow.py
 
 # usage: ./N-planes-mesh.py <data-loader> <min-z> <max-z> <patch-size> <stride> <batch-size>
-# bsub -Pcellmap -n4 -gpu "num=1" -q gpu_l4 -Is /bin/zsh
 
+import sys
 import os
 from concurrent import futures
 import time
