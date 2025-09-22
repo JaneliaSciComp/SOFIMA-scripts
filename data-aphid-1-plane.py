@@ -3,7 +3,7 @@ import h5py
 import numpy as np
 import skimage.io as skio
 
-outpath='/nrs/cellmap/arthurb/aphid'
+outpath='/nrs/cellmap/arthurb'
 
 tile_space = (2, 3)
 

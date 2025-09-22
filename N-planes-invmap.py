@@ -7,6 +7,7 @@
 
 # usage : ./N-planes-invmap.py <data-loader> <min-z> <max-z> <patch-size> <stride>
 
+import sys
 import os
 import importlib
 
