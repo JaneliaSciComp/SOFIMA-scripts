@@ -13,13 +13,16 @@ url='http://em-services-1.int.janelia.org:8080/render-ws/v1/owner/cellmap/projec
 MIN_Z=$4
 MAX_Z=$5
 
+outpath=/nrs/cellmap/arthurb
+bsub_flags=(-Pcellmap -n1 -gpu "num=1" -q gpu_l4)
+
 tiles=$(curl "$url/zRange/${MIN_Z},${MAX_Z}/layoutFile?format=SCHEFFER" | tail -n +2 | cut -d' ' -f2)
 
 uniq_slices=($(echo $tiles | sed 's/^.//' | sed 's/\?.*//' | uniq))
 echo nslices = ${#uniq_slices}
 for slice in "${uniq_slices[@]}" ; do
-    bsub_flags=(-Pcellmap -n1 -gpu "num=1" -q gpu_l4)
-    logfile=/nrs/cellmap/arthurb/$(basename $slice).log
-    bsub ${bsub_flags[@]} -oo $logfile conda run -n multi-sem \
-                ./1-plane-stitch.py "data-aphid-1-plane" $slice $level $patch_size $stride
+    logfile=$outpath/$(basename $slice).log
+    bsub ${bsub_flags[@]} -oo $logfile \
+            conda run -n multi-sem --no-capture-output \
+            python -u ./1-plane-stitch.py "data-aphid-1-plane" $slice $level $patch_size $stride
 done
