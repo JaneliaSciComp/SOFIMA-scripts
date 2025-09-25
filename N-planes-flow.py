@@ -6,7 +6,7 @@
 
 # this first part just does the GPU intensive stuff
 
-# usage: ./N-planes-flow.py <data-loader> <min-z> <max-z> <patch-size> <stride> <batch-size>
+# usage: ./N-planes-flow.py <data-loader> <basepath> <min-z> <max-z> <patch-size> <stride> <batch-size>
 
 import sys
 import os
@@ -27,7 +27,7 @@ from datetime import datetime
 
 import importlib
 
-data_loader, min_z, max_z, patch_size, stride, batch_size = sys.argv[1:]
+data_loader, basepath, min_z, max_z, patch_size, stride, batch_size = sys.argv[1:]
 min_z = int(min_z)
 max_z = int(max_z)
 patch_size = int(patch_size)
@@ -35,6 +35,7 @@ stride = int(stride)
 batch_size = int(batch_size)
 
 print("data_loader =", data_loader)
+print("basepath =", basepath)
 print("min_z =", min_z)
 print("max_z =", max_z)
 print("patch_size =", patch_size)
@@ -48,7 +49,7 @@ filenames_noext = data.get_tile_list(min_z, max_z)
 def _compute_flow(ss):
   mfc = flow_field.JAXMaskedXCorrWithStatsCalculator()
   flows = {s:[] for s in ss}
-  _prev = data.load_data(filenames_noext, 0, 0)
+  _prev = data.load_data(basepath, filenames_noext, 0, 0)
   prev = {s:_prev[::2**s,::2**s] for s in ss}
 
   fs = []
@@ -56,7 +57,7 @@ def _compute_flow(ss):
     # Prefetch the next sections to memory so that we don't have to wait for them
     # to load when the GPU becomes available.
     for z in range(1, len(filenames_noext)):
-      fs.append(tpe.submit(lambda z=z: data.load_data(filenames_noext, z,0)))
+      fs.append(tpe.submit(lambda z=z: data.load_data(basepath, filenames_noext, z,0)))
 
     fs = fs[::-1]
 
@@ -180,4 +181,4 @@ plt.savefig("flows-f2-f2hi-d.tif", dpi=300)
 
 params = 'minz'+str(min_z)+'.maxz'+str(max_z)+'.patch'+str(patch_size)+'.stride'+str(stride)
 
-data.save_flow(final_flow, params)
+data.save_flow(final_flow, basepath, params)

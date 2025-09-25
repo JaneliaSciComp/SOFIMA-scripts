@@ -7,7 +7,7 @@
 # this second part just does the GPU intensive stuff.  it depends on the
 # output of N-planes-flow.py
 
-# usage: ./N-planes-mesh.py <data-loader> <min-z> <max-z> <patch-size> <stride> <batch-size>
+# usage: ./N-planes-mesh.py <data-loader> <basepath> <min-z> <max-z> <patch-size> <stride> <batch-size>
 
 import sys
 import os
@@ -28,7 +28,7 @@ from datetime import datetime
 
 import importlib
 
-data_loader, min_z, max_z, patch_size, stride, batch_size = sys.argv[1:]
+data_loader, basepath, min_z, max_z, patch_size, stride, batch_size = sys.argv[1:]
 min_z = int(min_z)
 max_z = int(max_z)
 patch_size = int(patch_size)
@@ -36,6 +36,7 @@ stride = int(stride)
 batch_size = int(batch_size)
 
 print("data_loader =", data_loader)
+print("basepath =", basepath)
 print("min_z =", min_z)
 print("max_z =", max_z)
 print("patch_size =", patch_size)
@@ -46,7 +47,7 @@ data = importlib.import_module(os.path.basename(data_loader))
 
 params = 'minz'+str(min_z)+'.maxz'+str(max_z)+'.patch'+str(patch_size)+'.stride'+str(stride)
 
-flow = data.load_flow(params)
+flow = data.load_flow(basepath, params)
 
 config = mesh.IntegrationConfig(dt=0.001, gamma=0.0, k0=0.01, k=0.1,
                                 stride=(stride, stride),
@@ -69,4 +70,4 @@ for z in range(0, flow.shape[1]):
 
 solved = np.concatenate(solved, axis=1)
 
-data.save_mesh(solved, params)
+data.save_mesh(solved, basepath, params)

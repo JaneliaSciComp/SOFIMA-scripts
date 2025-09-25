@@ -3,8 +3,6 @@ import h5py
 import numpy as np
 import skimage.io as skio
 
-outpath='/nrs/cellmap/arthurb'
-
 tile_space = (2, 3)
 
 def load_data(planepath, level):
@@ -27,11 +25,11 @@ def load_data(planepath, level):
 
     return tile_map
 
-def save_plane(planepath, stitched, level):
+def save_plane(outpath, planepath, stitched, level):
     planename = os.path.basename(planepath)
     skio.imsave(f'{outpath}/{planename}-s{level}.tif', stitched)
 
-def save_tiles(planepath, stitched, maxdim):
+def save_tiles(outpath, planepath, stitched, maxdim):
     planename = os.path.basename(planepath)
     padded_array = np.zeros(maxdim, dtype=np.uint8)
     for k in stitched.keys():
