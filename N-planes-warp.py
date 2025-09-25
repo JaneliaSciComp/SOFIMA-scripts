@@ -5,7 +5,7 @@
 # this third part only uses the CPU (and also a lot of RAM).  it depends on the
 # output of N-planes-invmap.py
 
-# usage : ./N-planes-warp.py <data-loader> <min-z> <max-z> <patch-size> <stride>
+# usage : ./N-planes-warp.py <data-loader> <basepath> <min-z> <max-z> <patch-size> <stride>
 
 import sys
 import os
@@ -16,11 +16,12 @@ from datetime import datetime
 
 import importlib
 
-data_loader, min_z, max_z, patch_size, stride = sys.argv[1:]
+data_loader, basepath, min_z, max_z, patch_size, stride = sys.argv[1:]
 patch_size = int(patch_size)
 stride = int(stride)
 
 print("data_loader =", data_loader)
+print("basepath =", basepath)
 print("min_z =", min_z)
 print("max_z =", max_z)
 print("patch_size =", patch_size)
@@ -31,8 +32,8 @@ data = importlib.import_module(os.path.basename(data_loader))
 filenames_noext = data.get_tile_list(min_z, max_z)
 
 params = 'minz'+str(min_z)+'.maxz'+str(max_z)+'.patch'+str(patch_size)+'.stride'+str(stride)
-flow = data.load_mesh(params)
-invmap = data.load_invmap(params)
+flow = data.load_mesh(basepath, params)
+invmap = data.load_invmap(basepath, params)
 
 box1x = bounding_box.BoundingBox(start=(0, 0, 0), size=(flow.shape[-1], flow.shape[-2], 1)) # f1
 
@@ -40,10 +41,10 @@ print(datetime.now(), 'warping planes')
 
 chunk_size = 128
 
-warped0 = data.load_data(filenames_noext, 0,0)
+warped0 = data.load_data(basepath, filenames_noext, 0,0)
 warped = np.empty((chunk_size, *warped0.shape), dtype=warped0.dtype)
 warped[0,...] = warped0
-fid = data.open_warp([len(filenames_noext), *warped0.shape], chunk_size, params)
+fid = data.open_warp([len(filenames_noext), *warped0.shape], chunk_size, basepath, params)
 
 futures = []
 
@@ -52,7 +53,7 @@ for z in range(1, len(filenames_noext)):
   data_box = bounding_box.BoundingBox(start=(0, 0, 0), size=[*np.flip(np.array(warped0.shape)),1])
   out_box = bounding_box.BoundingBox(start=(0, 0, 0), size=[*np.flip(np.array(warped0.shape)),1])
 
-  curr = np.transpose(np.expand_dims(np.expand_dims(data.load_data(filenames_noext, z,0),
+  curr = np.transpose(np.expand_dims(np.expand_dims(data.load_data(basepath, filenames_noext, z,0),
                                                     axis=-1),
                                      axis=-1),
                       [3, 2, 0, 1])
