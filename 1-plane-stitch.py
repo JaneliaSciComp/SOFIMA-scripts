@@ -20,7 +20,7 @@ import importlib
 
 debug = False  # save unstitched but warped tiles
 
-data_loader, planepath, level, patch_size, stride = sys.argv[1:]
+data_loader, planepath, level, patch_size, stride, outpath = sys.argv[1:]
 level = int(level)
 patch_size = int(patch_size)
 stride = int(stride)
@@ -30,6 +30,7 @@ print("planepath =", planepath)
 print("level =", level)
 print("patch_size =", patch_size)
 print("stride =", stride)
+print("outpath =", outpath)
 
 data = importlib.import_module(os.path.basename(data_loader))
 
@@ -110,7 +111,7 @@ stitched, mask = warp.render_tiles(tile_map, meshes, stride=(stride, stride))
 
 params = '.patch'+str(patch_size)+'.stride'+str(stride)
 
-data.save_plane(planepath, stitched, level)
+data.save_plane(outpath, planepath, stitched, level)
 
 
 if debug:
@@ -123,4 +124,4 @@ if debug:
         maxdim[0] = max(maxdim[0], stitched[k].shape[0])
         maxdim[1] = max(maxdim[1], stitched[k].shape[1])
 
-    data.save_tiles(planepath, stitched, maxdim)
+    data.save_tiles(outpath, planepath, stitched, maxdim)
