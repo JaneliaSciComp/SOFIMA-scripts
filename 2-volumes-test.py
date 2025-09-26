@@ -45,7 +45,7 @@ data = importlib.import_module(os.path.basename(data_loader))
 
 params = '.patch'+str(patch_size)+'.stride'+str(stride)
 
-flow, mesh = data.load_flow_mesh(params)
+flow, _ = data.load_flow_mesh(params)
 invmap = data.load_invmap(params)
 
 ttop, tbot = data.load_data()
