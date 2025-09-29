@@ -136,21 +136,28 @@ print(datetime.now(), 'resampling maps')
 
 from scipy import interpolate
 
-fN_hires = {0: fN[0]}
-box1x = bounding_box.BoundingBox(start=(0, 0, 0), size=(fN[0].shape[-1], fN[0].shape[-2], 1))
-for s in scales[1:]:
-    fN_hires[s] = np.zeros_like(fN[0])
+fN_hires = {}
+s_min = min(scales)
+scale_min = 1 / (2**s_min)
+boxMx = bounding_box.BoundingBox(start=(0, 0, 0),
+                                 size=(fN[s_min].shape[-1], fN[s_min].shape[-2], 1))
+for s in scales:
+    if s==0:
+      fN_hires[0] = fN[0]
+      continue
 
     scale = 1 / (2**s)
-
-    boxNx = bounding_box.BoundingBox(start=(0, 0, 0), size=(fN[s].shape[-1], fN[s].shape[-2], 1))
+    boxNx = bounding_box.BoundingBox(start=(0, 0, 0),
+                                     size=(fN[s].shape[-1], fN[s].shape[-2], 1))
 
     for z in range(fN[s].shape[1]):
-      print(datetime.now(), 'z =', z)
+      print(datetime.now(), 's =', s, ', z =', z)
       # Upsample and scale spatial components.
       resampled = map_utils.resample_map(
           fN[s][:, z:z + 1, ...],
-          boxNx, box1x, 1 / scale, 1)
+          boxNx, boxMx, 1 / scale, 1 / scale_min)
+      if s not in fN_hires:
+          fN_hires[s] = np.zeros((resampled.shape[0], fN[s].shape[1], *resampled.shape[2:]))
       fN_hires[s][:, z:z + 1, ...] = resampled / scale
 
 final_flow = flow_utils.reconcile_flows(tuple(fN_hires[k] for k in scales),

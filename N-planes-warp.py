@@ -37,11 +37,14 @@ params = 'minz'+str(min_z)+'.maxz'+str(max_z)+'.patch'+str(patch_size)+'.stride'
 flow = data.load_mesh(basepath, params)
 invmap = data.load_invmap(basepath, params)
 
-box1x = bounding_box.BoundingBox(start=(0, 0, 0), size=(flow.shape[-1], flow.shape[-2], 1)) # f1
+boxMx = bounding_box.BoundingBox(start=(0, 0, 0), size=(flow.shape[-1], flow.shape[-2], 1))
 
 print(datetime.now(), 'warping planes')
 
 chunk_size = 128
+
+s_min = min(scales)
+stride_min = stride * (2**s_min)
 
 warped0 = data.load_data(basepath, filenames_noext, 0,0)
 warped = np.empty((chunk_size, *warped0.shape), dtype=warped0.dtype)
@@ -59,7 +62,8 @@ for z in range(1, len(filenames_noext)):
                                                     axis=-1),
                                      axis=-1),
                       [3, 2, 0, 1])
-  warped[z % chunk_size, ...] = warp.warp_subvolume(curr, data_box, invmap[:, z:z+1, ...], box1x, stride, out_box, 'lanczos', parallelism=1)[0, 0, ...]
+  warped[z % chunk_size, ...] = warp.warp_subvolume(curr, data_box,
+      invmap[:, z:z+1, ...], boxMx, stride_min, out_box, 'lanczos', parallelism=1)[0, 0, ...]
   if z % chunk_size == chunk_size - 1:
       futures.append(data.write_warp_planes(fid, warped, z-chunk_size+1, z+1))
   elif z == len(filenames_noext) - 1:

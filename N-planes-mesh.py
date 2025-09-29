@@ -60,11 +60,14 @@ config = mesh.IntegrationConfig(dt=0.001, gamma=0.0, k0=0.01, k=0.1,
 solved = [np.zeros_like(flow[:, 0:1, ...])]
 origin = jnp.array([0., 0.])
 
+s_min = min(scales)
+stride_min = stride * (2**s_min)
+
 print(datetime.now(), 'composing maps')
 for z in range(0, flow.shape[1]):
   print(datetime.now(), 'z =', z)
-  prev = map_utils.compose_maps_fast(flow[:, z:z+1, ...], origin, stride,
-                                     solved[-1], origin, stride)
+  prev = map_utils.compose_maps_fast(flow[:, z:z+1, ...], origin, stride_min,
+                                     solved[-1], origin, stride_min)
   x = np.zeros_like(solved[0])
   x, e_kin, num_steps = mesh.relax_mesh(x, prev, config)
   x = np.array(x)
