@@ -153,7 +153,7 @@ for s in scales[1:]:
           boxNx, box1x, 1 / scale, 1)
       fN_hires[s][:, z:z + 1, ...] = resampled / scale
 
-final_flow = flow_utils.reconcile_flows(tuple(fN_hires[k] for k in sort(fN_hires.keys())),
+final_flow = flow_utils.reconcile_flows(tuple(fN_hires[k] for k in scales),
         max_gradient=0, max_deviation=20, min_patch_size=400)
 
 '''
