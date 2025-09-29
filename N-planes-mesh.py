@@ -7,7 +7,7 @@
 # this second part just does the GPU intensive stuff.  it depends on the
 # output of N-planes-flow.py
 
-# usage: ./N-planes-mesh.py <data-loader> <basepath> <min-z> <max-z> <patch-size> <stride> <batch-size>
+# usage: ./N-planes-mesh.py <data-loader> <basepath> <min-z> <max-z> <patch-size> <stride> <scales> <batch-size>
 
 import sys
 import os
@@ -28,11 +28,12 @@ from datetime import datetime
 
 import importlib
 
-data_loader, basepath, min_z, max_z, patch_size, stride, batch_size = sys.argv[1:]
+data_loader, basepath, min_z, max_z, patch_size, stride, scales_str, batch_size = sys.argv[1:]
 min_z = int(min_z)
 max_z = int(max_z)
 patch_size = int(patch_size)
 stride = int(stride)
+scales = [int(x) for x in scales_str.split(',')]
 batch_size = int(batch_size)
 
 print("data_loader =", data_loader)
@@ -41,11 +42,12 @@ print("min_z =", min_z)
 print("max_z =", max_z)
 print("patch_size =", patch_size)
 print("stride =", stride)
+print("scales =", scales_str)
 print("batch_size =", batch_size)
 
 data = importlib.import_module(os.path.basename(data_loader))
 
-params = 'minz'+str(min_z)+'.maxz'+str(max_z)+'.patch'+str(patch_size)+'.stride'+str(stride)
+params = 'minz'+str(min_z)+'.maxz'+str(max_z)+'.patch'+str(patch_size)+'.stride'+str(stride)+'.scales'+str(scales_str).replace(",",'')
 
 flow = data.load_flow(basepath, params)
 

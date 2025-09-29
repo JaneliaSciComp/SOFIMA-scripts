@@ -6,7 +6,7 @@
 
 # this first part just does the GPU intensive stuff
 
-# usage: ./N-planes-flow.py <data-loader> <basepath> <min-z> <max-z> <patch-size> <stride> <batch-size>
+# usage: ./N-planes-flow.py <data-loader> <basepath> <min-z> <max-z> <patch-size> <stride> <scales> <batch-size>
 
 import sys
 import os
@@ -27,11 +27,12 @@ from datetime import datetime
 
 import importlib
 
-data_loader, basepath, min_z, max_z, patch_size, stride, batch_size = sys.argv[1:]
+data_loader, basepath, min_z, max_z, patch_size, stride, scales_str, batch_size = sys.argv[1:]
 min_z = int(min_z)
 max_z = int(max_z)
 patch_size = int(patch_size)
 stride = int(stride)
+scales = [int(x) for x in scales_str.split(',')]
 batch_size = int(batch_size)
 
 print("data_loader =", data_loader)
@@ -40,17 +41,18 @@ print("min_z =", min_z)
 print("max_z =", max_z)
 print("patch_size =", patch_size)
 print("stride =", stride)
+print("scales =", scales_str)
 print("batch_size =", batch_size)
 
 data = importlib.import_module(os.path.basename(data_loader))
 
 filenames_noext = data.get_tile_list(min_z, max_z)
 
-def _compute_flow(ss):
+def _compute_flow(scales):
   mfc = flow_field.JAXMaskedXCorrWithStatsCalculator()
-  flows = {s:[] for s in ss}
+  flows = {s:[] for s in scales}
   _prev = data.load_data(basepath, filenames_noext, 0, 0)
-  prev = {s:_prev[::2**s,::2**s] for s in ss}
+  prev = {s:_prev[::2**s,::2**s] for s in scales}
 
   fs = []
   with futures.ThreadPoolExecutor() as tpe:
@@ -64,12 +66,12 @@ def _compute_flow(ss):
     for z in range(1,len(filenames_noext)):
       print(datetime.now(), 'z =', z)
       _curr = fs.pop().result()
-      curr = {s:_curr[::2**s,::2**s] for s in ss}
+      curr = {s:_curr[::2**s,::2**s] for s in scales}
 
       # The batch size is a parameter which impacts the efficiency of the computation (but
       # not its result). It has to be large enough for the computation to fully utilize the
       # available GPU capacity, but small enough so that the batch fits in GPU RAM.
-      for s in ss:
+      for s in scales:
           flows[s].append(mfc.flow_field(prev[s], curr[s], (patch_size, patch_size),
                                          (stride, stride), batch_size=batch_size))
       prev = curr
@@ -77,19 +79,19 @@ def _compute_flow(ss):
   return flows
 
 print(datetime.now(), 'computing flow')
-flows12x = _compute_flow([0,1])
+fNx = _compute_flow(scales)
 
-# Convert to [channels, z, y, x].
-flows1x = np.transpose(np.array(flows12x[0]), [1, 0, 2, 3])
-flows2x = np.transpose(np.array(flows12x[1]), [1, 0, 2, 3])
+fN = {}
+for s in scales:
+    # Convert to [channels, z, y, x].
+    flows = np.transpose(np.array(fNx[s]), [1, 0, 2, 3])
 
-# Pad to account for the edges of the images where there is insufficient context to estimate flow.
-pad = patch_size // 2 // stride
-flows1x = np.pad(flows1x, [[0, 0], [0, 0], [pad, pad], [pad, pad]], constant_values=np.nan)
-flows2x = np.pad(flows2x, [[0, 0], [0, 0], [pad, pad], [pad, pad]], constant_values=np.nan)
+    # Pad to account for the edges of the images where there is insufficient context to estimate flow.
+    pad = patch_size // 2 // stride
+    flows = np.pad(flows, [[0, 0], [0, 0], [pad, pad], [pad, pad]], constant_values=np.nan)
 
-f1 = flow_utils.clean_flow(flows1x, min_peak_ratio=1.6, min_peak_sharpness=1.6, max_magnitude=80, max_deviation=20)
-f2 = flow_utils.clean_flow(flows2x, min_peak_ratio=1.6, min_peak_sharpness=1.6, max_magnitude=80, max_deviation=20)
+    fN[s] = flow_utils.clean_flow(flows, min_peak_ratio=1.6, min_peak_sharpness=1.6,
+                                  max_magnitude=80, max_deviation=20)
 
 '''
 f, ax = plt.subplots(2, 4, figsize=(16, 8))
@@ -128,27 +130,29 @@ plt.tight_layout()
 plt.savefig("flows-f.tif", dpi=600)
 '''
 
-from scipy import interpolate
-f2_hires = np.zeros_like(f1)
-
-scale = 0.5
-oy, ox = np.ogrid[:f2.shape[-2], :f2.shape[-1]]
-oy = oy.ravel() / scale
-ox = ox.ravel() / scale
-
-box1x = bounding_box.BoundingBox(start=(0, 0, 0), size=(f1.shape[-1], f1.shape[-2], 1))
-box2x = bounding_box.BoundingBox(start=(0, 0, 0), size=(f2.shape[-1], f2.shape[-2], 1))
-
 print(datetime.now(), 'resampling maps')
-for z in range(f2.shape[1]):
-  print(datetime.now(), 'z =', z)
-  # Upsample and scale spatial components.
-  resampled = map_utils.resample_map(
-      f2[:, z:z + 1, ...],  #
-      box2x, box1x, 1 / scale, 1)
-  f2_hires[:, z:z + 1, ...] = resampled / scale
 
-final_flow = flow_utils.reconcile_flows((f1, f2_hires), max_gradient=0, max_deviation=20, min_patch_size=400)
+from scipy import interpolate
+
+fN_hires = {0: fN[0]}
+box1x = bounding_box.BoundingBox(start=(0, 0, 0), size=(fN[0].shape[-1], fN[0].shape[-2], 1))
+for s in scales[1:]:
+    fN_hires[s] = np.zeros_like(fN[0])
+
+    scale = 1 / (2**s)
+
+    boxNx = bounding_box.BoundingBox(start=(0, 0, 0), size=(fN[s].shape[-1], fN[s].shape[-2], 1))
+
+    for z in range(fN[s].shape[1]):
+      print(datetime.now(), 'z =', z)
+      # Upsample and scale spatial components.
+      resampled = map_utils.resample_map(
+          fN[s][:, z:z + 1, ...],
+          boxNx, box1x, 1 / scale, 1)
+      fN_hires[s][:, z:z + 1, ...] = resampled / scale
+
+final_flow = flow_utils.reconcile_flows(tuple(fN_hires[k] for k in sort(fN_hires.keys())),
+        max_gradient=0, max_deviation=20, min_patch_size=400)
 
 '''
 # Plot (left to right): high res. flow, upsampled low res. flow, combined flow to use for alignment.
@@ -179,6 +183,6 @@ plt.tight_layout()
 plt.savefig("flows-f2-f2hi-d.tif", dpi=300)
 '''
 
-params = 'minz'+str(min_z)+'.maxz'+str(max_z)+'.patch'+str(patch_size)+'.stride'+str(stride)
+params = 'minz'+str(min_z)+'.maxz'+str(max_z)+'.patch'+str(patch_size)+'.stride'+str(stride)+'.scales'+str(scales_str).replace(",",'')
 
 data.save_flow(final_flow, basepath, params)
