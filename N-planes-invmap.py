@@ -35,10 +35,13 @@ params = 'minz'+str(min_z)+'.maxz'+str(max_z)+'.patch'+str(patch_size)+'.stride'
 flow = data.load_flow(basepath, params)
 mesh = data.load_mesh(basepath, params)
 
-box1x = bounding_box.BoundingBox(start=(0, 0, 0), size=(flow.shape[-1], flow.shape[-2], 1)) # f1
+boxMx = bounding_box.BoundingBox(start=(0, 0, 0), size=(flow.shape[-1], flow.shape[-2], 1))
+
+s_min = min(scales)
+stride_min = stride * (2**s_min)
 
 print(datetime.now(), 'inverting map')
-invmap = map_utils.invert_map(mesh, box1x, box1x, stride)
+invmap = map_utils.invert_map(mesh, boxMx, boxMx, stride_min)
 
 print(datetime.now(), 'saving inverted map')
 data.save_invmap(invmap, basepath, params)
