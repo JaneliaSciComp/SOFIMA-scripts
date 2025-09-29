@@ -25,6 +25,8 @@ from sofima import map_utils
 from sofima import mesh
 from datetime import datetime 
 
+from skimage.transform import downscale_local_mean
+
 import importlib
 
 data_loader, basepath, min_z, max_z, patch_size, stride, scales_str, batch_size = sys.argv[1:]
@@ -52,7 +54,7 @@ def _compute_flow(scales):
   mfc = flow_field.JAXMaskedXCorrWithStatsCalculator()
   flows = {s:[] for s in scales}
   _prev = data.load_data(basepath, filenames_noext, 0, 0)
-  prev = {s:_prev[::2**s,::2**s] for s in scales}
+  prev = {s:downscale_local_mean(_prev, (2**s,2**s)) for s in scales}
 
   fs = []
   with futures.ThreadPoolExecutor() as tpe:
@@ -66,7 +68,7 @@ def _compute_flow(scales):
     for z in range(1,len(filenames_noext)):
       print(datetime.now(), 'z =', z)
       _curr = fs.pop().result()
-      curr = {s:_curr[::2**s,::2**s] for s in scales}
+      curr = {s:downscale_local_mean(_curr, (2**s,2**s)) for s in scales}
 
       # The batch size is a parameter which impacts the efficiency of the computation (but
       # not its result). It has to be large enough for the computation to fully utilize the
