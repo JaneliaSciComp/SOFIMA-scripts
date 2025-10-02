@@ -5,7 +5,7 @@
 # this third part only uses the CPU (and also a lot of RAM).  it depends on the
 # output of N-planes-mesh.py
 
-# usage : ./N-planes-invmap.py <data-loader> <basepath> <min-z> <max-z> <patch-size> <stride> <scales>
+# usage : ./N-planes-invmap.py <data-loader> <basepath> <min-z> <max-z> <patch-size> <stride> <scales> <k0> <k>
 
 import sys
 import os
@@ -15,7 +15,7 @@ from connectomics.common import bounding_box
 from sofima import map_utils
 from datetime import datetime 
 
-data_loader, basepath, min_z, max_z, patch_size, stride, scales_str = sys.argv[1:]
+data_loader, basepath, min_z, max_z, patch_size, stride, scales_str, k0, k = sys.argv[1:]
 patch_size = int(patch_size)
 stride = int(stride)
 scales = [int(x) for x in scales_str.split(',')]
@@ -27,10 +27,12 @@ print("max_z =", max_z)
 print("patch_size =", patch_size)
 print("stride =", stride)
 print("scales =", scales_str)
+print("k0 =", k0)
+print("k =", k)
 
 data = importlib.import_module(os.path.basename(data_loader))
 
-params = 'minz'+str(min_z)+'.maxz'+str(max_z)+'.patch'+str(patch_size)+'.stride'+str(stride)+'.scales'+str(scales_str).replace(",",'')
+params = 'minz'+str(min_z)+'.maxz'+str(max_z)+'.patch'+str(patch_size)+'.stride'+str(stride)+'.scales'+str(scales_str).replace(",",'')+'.k0'+str(k0)+'.k'+str(k)
 
 flow = data.load_flow(basepath, params)
 mesh = data.load_mesh(basepath, params)
