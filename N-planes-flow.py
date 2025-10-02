@@ -6,7 +6,7 @@
 
 # this first part just does the GPU intensive stuff
 
-# usage: ./N-planes-flow.py <data-loader> <basepath> <min-z> <max-z> <patch-size> <stride> <scales> <batch-size>
+# usage: ./N-planes-flow.py <data-loader> <basepath> <min-z> <max-z> <patch-size> <stride> <scales> <k0> <k> <batch-size>
 
 import sys
 import os
@@ -29,7 +29,7 @@ from skimage.transform import downscale_local_mean
 
 import importlib
 
-data_loader, basepath, min_z, max_z, patch_size, stride, scales_str, batch_size = sys.argv[1:]
+data_loader, basepath, min_z, max_z, patch_size, stride, scales_str, k0, k, batch_size = sys.argv[1:]
 min_z = int(min_z)
 max_z = int(max_z)
 patch_size = int(patch_size)
@@ -44,6 +44,8 @@ print("max_z =", max_z)
 print("patch_size =", patch_size)
 print("stride =", stride)
 print("scales =", scales_str)
+print("k0 =", k0)
+print("k =", k)
 print("batch_size =", batch_size)
 
 data = importlib.import_module(os.path.basename(data_loader))
@@ -192,6 +194,6 @@ plt.tight_layout()
 plt.savefig("flows-f2-f2hi-d.tif", dpi=300)
 '''
 
-params = 'minz'+str(min_z)+'.maxz'+str(max_z)+'.patch'+str(patch_size)+'.stride'+str(stride)+'.scales'+str(scales_str).replace(",",'')
+params = 'minz'+str(min_z)+'.maxz'+str(max_z)+'.patch'+str(patch_size)+'.stride'+str(stride)+'.scales'+str(scales_str).replace(",",'')+'.k0'+str(k0)+'.k'+str(k)
 
 data.save_flow(final_flow, basepath, params)

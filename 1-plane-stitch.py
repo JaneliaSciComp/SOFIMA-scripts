@@ -6,7 +6,7 @@
 
 # a GPU and 1 core needed
 
-# usage: ./1-plane-stitch.py <data-loader> <level> <patch-size> <stride>
+# usage: ./1-plane-stitch.py <data-loader> <level> <patch-size> <stride> <k0> <k> <outpath>
 
 import sys
 import os
@@ -20,16 +20,20 @@ import importlib
 
 debug = False  # save unstitched but warped tiles
 
-data_loader, planepath, level, patch_size, stride, outpath = sys.argv[1:]
+data_loader, planepath, level, patch_size, stride, k0, k, outpath = sys.argv[1:]
 level = int(level)
 patch_size = int(patch_size)
 stride = int(stride)
+k0 = float(k0)
+k = float(k)
 
 print("data_loader =", data_loader)
 print("planepath =", planepath)
 print("level =", level)
 print("patch_size =", patch_size)
 print("stride =", stride)
+print("k0 =", k0)
+print("k =", k)
 print("outpath =", outpath)
 
 data = importlib.import_module(os.path.basename(data_loader))
@@ -93,7 +97,7 @@ def prev_fn(x):
 # case you might want use aggressive flow filtering to ensure that there are no
 # inaccurate flow vectors). Lower ratios will reduce deformation, which, depending
 # on the initial state of the tiles, might result in visible seams.
-config = mesh.IntegrationConfig(dt=0.001, gamma=0., k0=0.01, k=0.1, stride=(stride, stride),
+config = mesh.IntegrationConfig(dt=0.001, gamma=0., k0=k0, k=k, stride=(stride, stride),
                                 num_iters=1000, max_iters=20000, stop_v_max=0.001,
                                 dt_max=100, prefer_orig_order=True,
                                 start_cap=0.1, final_cap=10., remove_drift=True)
@@ -107,9 +111,9 @@ idx_to_key = {v: k for k, v in key_to_idx.items()}
 meshes = {idx_to_key[i]: np.array(x[:, i:i+1 :, :]) for i in range(x.shape[1])}
 
 # Warp the tiles into a single image.
-stitched, mask = warp.render_tiles(tile_map, meshes, stride=(stride, stride))
+stitched, _ = warp.render_tiles(tile_map, meshes, stride=(stride, stride))
 
-params = '.patch'+str(patch_size)+'.stride'+str(stride)
+params = '.patch'+str(patch_size)+'.stride'+str(stride)+'.k0'+str(k0)+'.k'+str(k)
 
 data.save_plane(outpath, planepath, stitched, level)
 
@@ -120,7 +124,7 @@ if debug:
     for k in tile_map.keys():
         tm = {k: tile_map[k]}
         msh = {k: meshes[k]}
-        stitched[k], mask = warp.render_tiles(tm, msh, stride=(stride, stride))
+        stitched[k], _ = warp.render_tiles(tm, msh, stride=(stride, stride))
         maxdim[0] = max(maxdim[0], stitched[k].shape[0])
         maxdim[1] = max(maxdim[1], stitched[k].shape[1])
 
