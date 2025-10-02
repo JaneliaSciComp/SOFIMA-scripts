@@ -4,6 +4,7 @@ import numpy as np
 import skimage.io as skio
 
 tile_space = (2, 3)
+crop = (slice(30,None), slice(100,None))
 
 def load_data(planepath, level):
     # Define the tile space. This specifies how the different tiles are distributed
@@ -21,7 +22,7 @@ def load_data(planepath, level):
             tile_id = tile_id_map[y, x]
             with h5py.File(f'{planepath}', 'r') as fid:
                 d = fid[f'{tile_id}/mipmap.{level}']
-                tile_map[(x, y)] = np.array(d[0,:,100:])
+                tile_map[(x, y)] = np.array(d[0,*crop])
 
     return tile_map
 
