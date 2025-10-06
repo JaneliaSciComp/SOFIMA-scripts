@@ -6,7 +6,7 @@
 
 # this first part just does the GPU intensive stuff
 
-# usage: ./N-planes-flow.py <data-loader> <basepath> <min-z> <max-z> <patch-size> <stride> <scales> <k0> <k> <batch-size>
+# usage: ./N-planes-flow.py <data-loader> <basepath> <min-z> <max-z> <patch-size> <stride> <scales> <k0> <k> <reps> <batch-size>
 
 import sys
 import os
@@ -29,12 +29,13 @@ from skimage.transform import downscale_local_mean
 
 import importlib
 
-data_loader, basepath, min_z, max_z, patch_size, stride, scales_str, k0, k, batch_size = sys.argv[1:]
+data_loader, basepath, min_z, max_z, patch_size, stride, scales_str, k0, k, reps, batch_size = sys.argv[1:]
 min_z = int(min_z)
 max_z = int(max_z)
 patch_size = int(patch_size)
 stride = int(stride)
 scales = [int(x) for x in scales_str.split(',')]
+reps = int(reps)
 batch_size = int(batch_size)
 
 print("data_loader =", data_loader)
@@ -46,13 +47,14 @@ print("stride =", stride)
 print("scales =", scales_str)
 print("k0 =", k0)
 print("k =", k)
+print("reps =", reps)
 print("batch_size =", batch_size)
 
 data = importlib.import_module(os.path.basename(data_loader))
 
 filenames_noext = data.get_tile_list(min_z, max_z)
 
-def _compute_flow(scales):
+def _compute_flow(scales, prev_flows=None):
   mfc = flow_field.JAXMaskedXCorrWithStatsCalculator()
   flows = {s:[] for s in scales}
   _prev = data.load_data(basepath, filenames_noext, 0, 0)
@@ -76,14 +78,20 @@ def _compute_flow(scales):
       # not its result). It has to be large enough for the computation to fully utilize the
       # available GPU capacity, but small enough so that the batch fits in GPU RAM.
       for s in scales:
-          flows[s].append(mfc.flow_field(prev[s], curr[s], (patch_size, patch_size),
-                                         (stride, stride), batch_size=batch_size))
+          flows[s].append(mfc.flow_field(prev[s], curr[s],
+                                         (patch_size, patch_size),
+                                         (stride, stride),
+                                         batch_size = batch_size,
+                                         pre_targeting_field = prev_flows[s][z-1][:2, ::] if prev_flows else None,
+                                         pre_targeting_step = (stride, stride)))
       prev = curr
 
   return flows
 
 print(datetime.now(), 'computing flow')
 fNx = _compute_flow(scales)
+for _ in range(reps-1):
+    fNx = _compute_flow(scales, fNx)
 
 fN = {}
 for s in scales:
@@ -194,6 +202,6 @@ plt.tight_layout()
 plt.savefig("flows-f2-f2hi-d.tif", dpi=300)
 '''
 
-params = 'minz'+str(min_z)+'.maxz'+str(max_z)+'.patch'+str(patch_size)+'.stride'+str(stride)+'.scales'+str(scales_str).replace(",",'')+'.k0'+str(k0)+'.k'+str(k)
+params = 'minz'+str(min_z)+'.maxz'+str(max_z)+'.patch'+str(patch_size)+'.stride'+str(stride)+'.scales'+str(scales_str).replace(",",'')+'.k0'+str(k0)+'.k'+str(k)+'.reps'+str(reps)
 
 data.save_flow(final_flow, basepath, params)
