@@ -6,10 +6,9 @@
 
 # this first part just does the GPU intensive stuff
 
-# usage: ./N-planes-flow.py <data-loader> <basepath> <min-z> <max-z> <patch-size> <stride> <scales> <k0> <k> <reps> <batch-size>
-
 import sys
 import os
+import argparse
 from concurrent import futures
 import time
 
@@ -29,14 +28,76 @@ from skimage.transform import downscale_local_mean
 
 import importlib
 
-data_loader, basepath, min_z, max_z, patch_size, stride, scales_str, k0, k, reps, batch_size = sys.argv[1:]
-min_z = int(min_z)
-max_z = int(max_z)
-patch_size = int(patch_size)
-stride = int(stride)
-scales = [int(x) for x in scales_str.split(',')]
-reps = int(reps)
-batch_size = int(batch_size)
+# Parse command line arguments
+parser = argparse.ArgumentParser(
+    description="Takes a pair of slices and aligns them - GPU intensive processing"
+)
+parser.add_argument(
+    "data_loader",
+    help="Data loader module name, e.g., data-test-2-planes"
+)
+parser.add_argument(
+    "basepath",
+    help="filepath to stiched planes"
+)
+parser.add_argument(
+    "min_z",
+    type=int,
+    help="lower bound on the planes to align"
+)
+parser.add_argument(
+    "max_z",
+    type=int,
+    help="upper bound on the planes to align"
+)
+parser.add_argument(
+    "patch_size",
+    type=int,
+    help="Side length of (square) patch for processing (in pixels, e.g., 32)",
+)
+parser.add_argument(
+    "stride",
+    type=int,
+    help="Distance of adjacent patches (in pixels, e.g., 8)"
+)
+parser.add_argument(
+    "scales",
+    help="the spatial resolutions to use when computing the flow field"
+)
+parser.add_argument(
+    "k0",
+    type=float,
+    help="spring constant for inter-section springs"
+)
+parser.add_argument(
+    "k",
+    type=float,
+    help="spring constant for intra-section springs"
+)
+parser.add_argument(
+    "reps",
+    type=int,
+    help="how many times to iteratively compute the flow"
+)
+parser.add_argument(
+    "batch_size",
+    type=int,
+    help="how many patches to process simultaneously",
+)
+
+args = parser.parse_args()
+
+data_loader = args.data_loader
+basepath = args.basepath
+min_z = args.min_z
+max_z = args.max_z
+patch_size = args.patch_size
+stride = args.stride
+scales_int = [int(x) for x in args.scales.split(',')]
+k0 = args.k0
+k = args.k
+reps = args.reps
+batch_size = args.batch_size
 
 print("data_loader =", data_loader)
 print("basepath =", basepath)
@@ -44,7 +105,7 @@ print("min_z =", min_z)
 print("max_z =", max_z)
 print("patch_size =", patch_size)
 print("stride =", stride)
-print("scales =", scales_str)
+print("scales =", scales_int)
 print("k0 =", k0)
 print("k =", k)
 print("reps =", reps)
@@ -89,12 +150,12 @@ def _compute_flow(scales, prev_flows=None):
   return flows
 
 print(datetime.now(), 'computing flow')
-fNx = _compute_flow(scales)
+fNx = _compute_flow(scales_int)
 for _ in range(reps-1):
-    fNx = _compute_flow(scales, fNx)
+    fNx = _compute_flow(scales_int, fNx)
 
 fN = {}
-for s in scales:
+for s in scales_int:
     # Convert to [channels, z, y, x].
     flows = np.transpose(np.array(fNx[s]), [1, 0, 2, 3])
 
@@ -147,11 +208,11 @@ print(datetime.now(), 'resampling maps')
 from scipy import interpolate
 
 fN_hires = {}
-s_min = min(scales)
+s_min = min(scales_int)
 scale_min = 1 / (2**s_min)
 boxMx = bounding_box.BoundingBox(start=(0, 0, 0),
                                  size=(fN[s_min].shape[-1], fN[s_min].shape[-2], 1))
-for s in scales:
+for s in scales_int:
     if s==0:
       fN_hires[0] = fN[0]
       continue
@@ -170,7 +231,7 @@ for s in scales:
           fN_hires[s] = np.zeros((resampled.shape[0], fN[s].shape[1], *resampled.shape[2:]))
       fN_hires[s][:, z:z + 1, ...] = resampled / scale
 
-final_flow = flow_utils.reconcile_flows(tuple(fN_hires[k] for k in scales),
+final_flow = flow_utils.reconcile_flows(tuple(fN_hires[k] for k in scales_int),
         max_gradient=0, max_deviation=20, min_patch_size=400)
 
 '''
@@ -202,6 +263,6 @@ plt.tight_layout()
 plt.savefig("flows-f2-f2hi-d.tif", dpi=300)
 '''
 
-params = 'minz'+str(min_z)+'.maxz'+str(max_z)+'.patch'+str(patch_size)+'.stride'+str(stride)+'.scales'+str(scales_str).replace(",",'')+'.k0'+str(k0)+'.k'+str(k)+'.reps'+str(reps)
+params = 'minz'+str(min_z)+'.maxz'+str(max_z)+'.patch'+str(patch_size)+'.stride'+str(stride)+'.scales'+args.scales.replace(",",'')+'.k0'+str(k0)+'.k'+str(k)+'.reps'+str(reps)
 
 data.save_flow(final_flow, basepath, params)
