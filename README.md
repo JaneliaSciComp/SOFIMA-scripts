@@ -77,26 +77,33 @@ python 2-volumes-test.py data-test-2-volumes 32 8
 There should be two figures generated (overlay-xy.png and overlay-xz.png) that
 show the alignment in XY and XZ planes, respectively.
 
-### aligning the aphid salivary gland data set
+### stitching and aligning the aphid salivary gland data set
 
-edit "data-aphid-1-plane.py" to specify `outpath`.  and note that a 2x3
+to stitch tiles within a plane, edit "data-aphid-1-plane.py" to specify how
+many pixels to trim from each edge of the tiles in `crop`.  and note that a 2x3
 arrangement of tiles within a plane is currently assumed.  then run
 
 ```bash
-1-plane-stitch.sh 1 100 10 10700 10780
+./1-plane-stitch.sh <level> <patch_size> <stride> <k0> <k> <min_z> <max_z> <outpath>
 ```
+
+reasonable defaults for `level` etc. are 0 50 5 0.01 0.1 10770 10780.
 
 wait for the cluster jobs to finish (a few minutes).
 
-similarly edit "data-aphid-N-planes.py" to specify `basepath`.  and note that
-`url` is hard-coded for the aphid dataset.  then on your workstation run
+then, to align planes with each other, note that `url` for the aphid dataset is
+hard-coded in "data-aphid-N-planes.py".  then on your workstation run
 
 ```bash
-N-planes-flow.py "data-aphid-N-planes" 10770 10780 100 20 256
-N-planes-mesh.py "data-aphid-N-planes" 10770 10780 100 20 256
-N-planes-invmap.py "data-aphid-N-planes" 10770 10780 100 20
-N-planes-warp.py "data-aphid-N-planes" 10770 10780 100 20
+./N-planes-align.sh "data-aphid-N-planes" <basepath> <min-z> <max-z> <patch-size> <stride> <scales> <k0> <k> <repeat> <batch-size> <chunk-size>
 ```
 
-each step in the above saves intermediates results to an .npy file.  the final
-output is a zarr.
+where reasonable defaults for `patch-size` etc. are 50 5 1,2 0.01 0.1 1 2048 128.
+
+internally, 1-plane-stitch.sh calls 1-plane-stitch.py and the data loading code
+is architected as a plugin in data-aphid-1-plane.py.
+
+similarly, N-planes-align.sh calls N-planes-{flow,mesh,invmap,warp}.py
+successively with the aphid-data-N-planes.py data loading plugin.  each python
+script saves intermediates results to an .npy file.  the final output is a
+zarr.
