@@ -6,10 +6,9 @@
 
 # a GPU and 1 core needed
 
-# usage: ./1-plane-stitch.py <data-loader> <level> <patch-size> <stride> <k0> <k> <outpath>
-
 import sys
 import os
+import argparse
 import functools as ft
 import jax
 import jax.numpy as jnp
@@ -20,12 +19,58 @@ import importlib
 
 debug = False  # save unstitched but warped tiles
 
-data_loader, planepath, level, patch_size, stride, k0, k, outpath = sys.argv[1:]
-level = int(level)
-patch_size = int(patch_size)
-stride = int(stride)
-k0 = float(k0)
-k = float(k)
+# Parse command line arguments
+parser = argparse.ArgumentParser(
+    description="Takes a pair of slices and aligns them - GPU intensive processing"
+)
+parser.add_argument(
+    "data_loader",
+    help="Data loader module name, e.g., data-test-2-planes"
+)
+parser.add_argument(
+    "planepath",
+    help="filepath to tiles in the slice of interest"
+)
+parser.add_argument(
+    "level",
+    type=int,
+    help="the spatial scale / resolution to stitch together"
+)
+parser.add_argument(
+    "patch_size",
+    type=int,
+    help="Side length of (square) patch for processing (in pixels, e.g., 32)",
+)
+parser.add_argument(
+    "stride",
+    type=int,
+    help="Distance of adjacent patches (in pixels, e.g., 8)"
+)
+parser.add_argument(
+    "k0",
+    type=float,
+    help="spring constant for inter-section springs"
+)
+parser.add_argument(
+    "k",
+    type=float,
+    help="spring constant for intra-section springs"
+)
+parser.add_argument(
+    "outpath",
+    help="path to save the results"
+)
+
+args = parser.parse_args()
+
+data_loader = args.data_loader
+planepath = args.planepath
+level = args.level
+patch_size = args.patch_size
+stride = args.stride
+k0 = args.k0
+k = args.k
+outpath = args.outpath
 
 print("data_loader =", data_loader)
 print("planepath =", planepath)
