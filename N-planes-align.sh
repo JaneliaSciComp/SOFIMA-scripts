@@ -2,8 +2,8 @@
 
 # launches dependent cluster jobs for each step needed to align a stack of N planes
 
-# usage: ./N-planes-align.sh <data-loader> <min-z> <max-z> <patch-size> <stride> <scales> <k0> <k> <repeat> <batch-size>
-# e.g. ./N-planes-align.sh "data-aphid-N-planes" /nrs/cellmap/arthurb/stitch.patch50.stride5 10770 10780 50 5 1,2 0.01 0.1 1 4096
+# usage: ./N-planes-align.sh <data-loader> <min-z> <max-z> <patch-size> <stride> <scales> <k0> <k> <repeat> <batch-size> <chunk-size>
+# e.g. ./N-planes-align.sh "data-aphid-N-planes" /nrs/cellmap/arthurb/stitch.patch50.stride5 10770 10780 50 5 1,2 0.01 0.1 1 4096 128
 
 data_loader=$1
 basepath=$2
@@ -16,6 +16,7 @@ k0=$8
 k=$9
 reps=${10}
 batch_size=${11}
+chunk_size=${12}
 
 params=minz${min_z}.maxz${max_z}.patch${patch_size}.stride${stride}.scales${scales//,/}.k0${k0}.k${k}.reps${reps}
 
@@ -49,6 +50,6 @@ bsub_flags=(-Pcellmap -n4)
 logfile=$basepath/warp.${params}.log
 bsub_stdout=`bsub ${bsub_flags[@]} -oo $logfile -w $dependency \
     conda run -n multi-sem --no-capture-output \
-    python -u ./N-planes-warp.py $data_loader $basepath $min_z $max_z $patch_size $stride $scales $k0 $k $reps`
+    python -u ./N-planes-warp.py $data_loader $basepath $min_z $max_z $patch_size $stride $scales $k0 $k $reps $chunk_size`
 jobid=`expr match "$bsub_stdout" "$jobid_regex"`
 dependency=done\($jobid\)

@@ -5,7 +5,7 @@
 # this third part only uses the CPU (and also a lot of RAM).  it depends on the
 # output of N-planes-invmap.py
 
-# usage : ./N-planes-warp.py <data-loader> <basepath> <min-z> <max-z> <patch-size> <stride> <scales> <k0> <k> <reps>
+# usage : ./N-planes-warp.py <data-loader> <basepath> <min-z> <max-z> <patch-size> <stride> <scales> <k0> <k> <reps> <chunk-size>
 
 import sys
 import os
@@ -16,10 +16,11 @@ from datetime import datetime
 
 import importlib
 
-data_loader, basepath, min_z, max_z, patch_size, stride, scales_str, k0, k, reps = sys.argv[1:]
+data_loader, basepath, min_z, max_z, patch_size, stride, scales_str, k0, k, reps, chunk_size = sys.argv[1:]
 patch_size = int(patch_size)
 stride = int(stride)
 scales = [int(x) for x in scales_str.split(',')]
+chunk_size = int(chunk_size)
 
 print("data_loader =", data_loader)
 print("basepath =", basepath)
@@ -31,6 +32,7 @@ print("scales =", scales_str)
 print("k0 =", k0)
 print("k =", k)
 print("reps =", reps)
+print("chunk_size =", chunk_size)
 
 data = importlib.import_module(os.path.basename(data_loader))
 
@@ -43,8 +45,6 @@ invmap = data.load_invmap(basepath, params)
 boxMx = bounding_box.BoundingBox(start=(0, 0, 0), size=(flow.shape[-1], flow.shape[-2], 1))
 
 print(datetime.now(), 'warping planes')
-
-chunk_size = 128
 
 s_min = min(scales)
 stride_min = stride * (2**s_min)
