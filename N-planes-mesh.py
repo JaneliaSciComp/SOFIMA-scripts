@@ -29,7 +29,7 @@ import importlib
 
 # Parse command line arguments
 parser = argparse.ArgumentParser(
-    description="Takes a pair of slices and aligns them - GPU intensive processing"
+    description="relaxes the springed mesh using the flow field - GPU intensive"
 )
 parser.add_argument(
     "data_loader",
@@ -37,7 +37,7 @@ parser.add_argument(
 )
 parser.add_argument(
     "basepath",
-    help="filepath to stiched planes"
+    help="filepath to stitched planes"
 )
 parser.add_argument(
     "min_z",
