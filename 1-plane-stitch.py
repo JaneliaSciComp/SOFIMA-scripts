@@ -28,8 +28,9 @@ parser.add_argument(
     help="Data loader module name, e.g., data-test-2-planes"
 )
 parser.add_argument(
-    "planepath",
-    help="filepath to tiles in the slice of interest"
+    "z",
+    type=int,
+    help="slice of interest"
 )
 parser.add_argument(
     "level",
@@ -60,29 +61,44 @@ parser.add_argument(
     "outpath",
     help="path to save the results"
 )
+parser.add_argument(
+    "write_metadata",
+    type=int,
+    help="whether to write the zarr metadata for not"
+)
+parser.add_argument(
+    "chunk_size",
+    type=int,
+    help="of the zarr output",
+)
 
 args = parser.parse_args()
 
 data_loader = args.data_loader
-planepath = args.planepath
+z = args.z
 level = args.level
 patch_size = args.patch_size
 stride = args.stride
 k0 = args.k0
 k = args.k
 outpath = args.outpath
+write_metadata = args.write_metadata
+chunk_size = args.chunk_size
 
 print("data_loader =", data_loader)
-print("planepath =", planepath)
+print("z =", z)
 print("level =", level)
 print("patch_size =", patch_size)
 print("stride =", stride)
 print("k0 =", k0)
 print("k =", k)
 print("outpath =", outpath)
+print("write_metadata =", write_metadata)
+print("chunk_size =", chunk_size)
 
 data = importlib.import_module(os.path.basename(data_loader))
 
+planepath = data.get_tilepath(z)
 tile_map = data.load_data(planepath, level)
 
 from sofima import stitch_rigid
@@ -158,9 +174,10 @@ meshes = {idx_to_key[i]: np.array(x[:, i:i+1 :, :]) for i in range(x.shape[1])}
 # Warp the tiles into a single image.
 stitched, _ = warp.render_tiles(tile_map, meshes, stride=(stride, stride))
 
-params = '.patch'+str(patch_size)+'.stride'+str(stride)+'.k0'+str(k0)+'.k'+str(k)
+# Warp the tiles into a single image.
+stitched, _ = warp.render_tiles(tile_map, meshes, stride=(stride, stride))
 
-data.save_plane(outpath, planepath, stitched, level)
+data.save_plane(outpath, z, stitched, level, write_metadata, chunk_size)
 
 
 if debug:

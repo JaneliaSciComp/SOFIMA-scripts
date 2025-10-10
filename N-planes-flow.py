@@ -113,24 +113,22 @@ print("batch_size =", batch_size)
 
 data = importlib.import_module(os.path.basename(data_loader))
 
-filenames_noext = data.get_tile_list(min_z, max_z)
-
 def _compute_flow(scales, prev_flows=None):
   mfc = flow_field.JAXMaskedXCorrWithStatsCalculator()
   flows = {s:[] for s in scales}
-  _prev = data.load_data(basepath, filenames_noext, 0, 0)
+  _prev = data.load_data(basepath, min_z, 0)
   prev = {s:downscale_local_mean(_prev, (2**s,2**s)) for s in scales}
 
   fs = []
   with futures.ThreadPoolExecutor() as tpe:
     # Prefetch the next sections to memory so that we don't have to wait for them
     # to load when the GPU becomes available.
-    for z in range(1, len(filenames_noext)):
-      fs.append(tpe.submit(lambda z=z: data.load_data(basepath, filenames_noext, z,0)))
+    for z in range(min_z+1, max_z+1):
+      fs.append(tpe.submit(lambda z=z: data.load_data(basepath, z,0)))
 
     fs = fs[::-1]
 
-    for z in range(1,len(filenames_noext)):
+    for z in range(min_z+1, max_z+1):
       print(datetime.now(), 'z =', z)
       _curr = fs.pop().result()
       curr = {s:downscale_local_mean(_curr, (2**s,2**s)) for s in scales}
@@ -143,7 +141,7 @@ def _compute_flow(scales, prev_flows=None):
                                          (patch_size, patch_size),
                                          (stride, stride),
                                          batch_size = batch_size,
-                                         pre_targeting_field = prev_flows[s][z-1][:2, ::] if prev_flows else None,
+                                         pre_targeting_field = prev_flows[s][z-(min_z+1)][:2, ::] if prev_flows else None,
                                          pre_targeting_step = (stride, stride)))
       prev = curr
 

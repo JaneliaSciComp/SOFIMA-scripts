@@ -1,10 +1,20 @@
 import os
+import requests
+import re
 import h5py
 import numpy as np
 import skimage.io as skio
+import tensorstore as ts
 
+url='http://em-services-1.int.janelia.org:8080/render-ws/v1/owner/cellmap/project/jrc_aphid_salivary_1/stack/v2_acquire'
 tile_space = (2, 3)
 crop = (slice(30,None), slice(100,None))
+
+def get_tilepath(Z):
+    r = requests.get(f"{url}/zRange/{Z},{Z}/layoutFile?format=SCHEFFER")
+    s = set([re.sub(r"\?.*","", s)[11:] for s in r.text.split('\n')[1:-1]])
+    assert len(s)==1
+    return s.pop()
 
 def load_data(planepath, level):
     # Define the tile space. This specifies how the different tiles are distributed
@@ -26,9 +36,26 @@ def load_data(planepath, level):
 
     return tile_map
 
-def save_plane(outpath, planepath, stitched, level):
-    planename = os.path.basename(planepath)
-    skio.imsave(f'{outpath}/{planename}-s{level}.tif', stitched)
+def save_plane(outpath, z, stitched, level, write_metadata, chunk_size):
+    r = requests.get(f"{url}/zValues")
+    nz = int(float(r.text[1:-1].split(',')[-1]))
+    za = ts.open({
+        'driver': 'zarr',
+        'kvstore': {"driver":"file", "path":os.path.join(outpath, 'stitched.s'+str(level)+'.zarr')},
+        'metadata': {
+            "compressor": {"id":"zstd", "level":3},
+            "shape": [nz,*stitched.shape],
+            "chunks": [1,chunk_size,chunk_size],
+            "fill_value": 0,
+            'dtype': '|u1',
+            'dimension_separator': '/',
+        },
+        'create': True,
+        'open': True,
+        'delete_existing': False,
+        'assume_metadata': write_metadata==1,
+        }).result()
+    za[z,:,:] = stitched
 
 def save_tiles(outpath, planepath, stitched, maxdim):
     planename = os.path.basename(planepath)
