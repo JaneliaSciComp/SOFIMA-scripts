@@ -121,25 +121,34 @@ stride_min = stride * (2**s_min)
 
 warped0 = data.load_data(basepath, min_z,0)
 warped = np.zeros((chunkz, *warped0.shape), dtype=warped0.dtype)
-warped[min_z % chunkz,...] = warped0
+curr = np.zeros((1, chunkz, *warped0.shape), dtype=warped0.dtype)
 fid = data.open_warp([max_z+1, *warped0.shape], chunkxy, chunkz, basepath, params)
 
-data_box = bounding_box.BoundingBox(start=(0, 0, 0), size=[*np.flip(np.array(warped0.shape)),1])
-out_box = bounding_box.BoundingBox(start=(0, 0, 0), size=[*np.flip(np.array(warped0.shape)),1])
+z = min_z
+while z <= max_z:
+  z0 = z
+  print(datetime.now(), 'loading chunk plane', z//chunkz)
+  while z <= max_z:
+      print(datetime.now(), 'z =', z)
+      if z == min_z:
+          warped[z % chunkz,:,:] = warped0
+      else:
+          curr[:,z % chunkz,:,:] = np.transpose(np.expand_dims(np.expand_dims(
+                           data.load_data(basepath, z,0), axis=-1), axis=-1), [3, 2, 0, 1])
+      z += 1
+      if z % chunkz == 0:
+          break
 
-for z in range(min_z+1, max_z+1):
-  print(datetime.now(), 'z =', z)
+  if z > min_z+1:
+      sz = [*warped.shape[1:][::-1], z-z0-(z0==min_z)]
+      data_box = bounding_box.BoundingBox(start=(0, 0, 0), size=sz)
+      out_box = bounding_box.BoundingBox(start=(0, 0, 0), size=sz)
 
-  curr = np.transpose(np.expand_dims(np.expand_dims(data.load_data(basepath, z,0),
-                                                    axis=-1),
-                                     axis=-1),
-                      [3, 2, 0, 1])
-  warped[z % chunkz, ...] = warp.warp_subvolume(curr, data_box,
-      invmap[:, z-min_z : z-min_z+1, ...], boxMx, stride_min, out_box, 'lanczos', parallelism=1)[0, 0, ...]
-  if z % chunkz == chunkz - 1:
-      print(datetime.now(), 'writing chunk plane', z//chunkz)
-      data.write_warp_planes(fid, warped, z-chunkz+1, z+1)
-  elif z == max_z:
-      print(datetime.now(), 'writing last chunk plane')
-      data.write_warp_planes(fid, warped[:z % chunkz + 1],
-                             z//chunkz * chunkz, z+1)
+      print(datetime.now(), 'warping chunk plane', (z-1)//chunkz)
+      warped[(z0 + (z0==min_z)) % chunkz : (z-1) % chunkz + 1, ...] = warp.warp_subvolume(
+          curr[:,(z0 + (z0==min_z)) % chunkz : (z-1) % chunkz + 1, ...], data_box,
+          invmap[:, z0-min_z + (z0==min_z) : z-min_z+1, ...], boxMx, stride_min, out_box, 'lanczos',
+          parallelism=chunkz)[0, ...]
+
+  print(datetime.now(), 'writing chunk plane', (z-1)//chunkz)
+  data.write_warp_planes(fid, warped[z0 % chunkz : (z-1) % chunkz + 1, ...], z0, z)
