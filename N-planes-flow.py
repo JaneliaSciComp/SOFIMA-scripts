@@ -117,7 +117,8 @@ def _compute_flow(scales, prev_flows=None):
   mfc = flow_field.JAXMaskedXCorrWithStatsCalculator()
   flows = {s:[] for s in scales}
   _prev = data.load_data(basepath, min_z, 0)
-  prev = {s:downscale_local_mean(_prev, (2**s,2**s)) for s in scales}
+  prev = {s:_prev if s==0 else downscale_local_mean(_prev, (2**s,2**s)) for s in scales}
+  if 0 not in scales:  del _prev
 
   fs = []
   with futures.ThreadPoolExecutor() as tpe:
@@ -131,7 +132,8 @@ def _compute_flow(scales, prev_flows=None):
     for z in range(min_z+1, max_z+1):
       print(datetime.now(), 'z =', z)
       _curr = fs.pop().result()
-      curr = {s:downscale_local_mean(_curr, (2**s,2**s)) for s in scales}
+      curr = {s:_curr if s==0 else downscale_local_mean(_curr, (2**s,2**s)) for s in scales}
+      if 0 not in scales:  del _curr
 
       # The batch size is a parameter which impacts the efficiency of the computation (but
       # not its result). It has to be large enough for the computation to fully utilize the
