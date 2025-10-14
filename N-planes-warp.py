@@ -67,7 +67,12 @@ parser.add_argument(
     help="how many times to iteratively compute the flow"
 )
 parser.add_argument(
-    "chunk_size",
+    "chunkxy",
+    type=int,
+    help="of the zarr output",
+)
+parser.add_argument(
+    "chunkz",
     type=int,
     help="of the zarr output",
 )
@@ -84,7 +89,8 @@ scales_int = [int(x) for x in args.scales.split(',')]
 k0 = args.k0
 k = args.k
 reps = args.reps
-chunk_size = args.chunk_size
+chunkxy = args.chunkxy
+chunkz = args.chunkz
 
 print("data_loader =", data_loader)
 print("basepath =", basepath)
@@ -96,7 +102,8 @@ print("scales =", scales_int)
 print("k0 =", k0)
 print("k =", k)
 print("reps =", reps)
-print("chunk_size =", chunk_size)
+print("chunkxy =", chunkxy)
+print("chunkz =", chunkz)
 
 nz = max_z - min_z + 1
 data = importlib.import_module(os.path.basename(data_loader))
@@ -113,9 +120,9 @@ s_min = min(scales_int)
 stride_min = stride * (2**s_min)
 
 warped0 = data.load_data(basepath, min_z,0)
-warped = np.zeros((chunk_size, *warped0.shape), dtype=warped0.dtype)
-warped[min_z % chunk_size,...] = warped0
-fid = data.open_warp([max_z+1, *warped0.shape], chunk_size, basepath, params)
+warped = np.zeros((chunkz, *warped0.shape), dtype=warped0.dtype)
+warped[min_z % chunkz,...] = warped0
+fid = data.open_warp([max_z+1, *warped0.shape], chunkxy, chunkz, basepath, params)
 
 data_box = bounding_box.BoundingBox(start=(0, 0, 0), size=[*np.flip(np.array(warped0.shape)),1])
 out_box = bounding_box.BoundingBox(start=(0, 0, 0), size=[*np.flip(np.array(warped0.shape)),1])
@@ -127,12 +134,12 @@ for z in range(min_z+1, max_z+1):
                                                     axis=-1),
                                      axis=-1),
                       [3, 2, 0, 1])
-  warped[z % chunk_size, ...] = warp.warp_subvolume(curr, data_box,
+  warped[z % chunkz, ...] = warp.warp_subvolume(curr, data_box,
       invmap[:, z-min_z : z-min_z+1, ...], boxMx, stride_min, out_box, 'lanczos', parallelism=1)[0, 0, ...]
-  if z % chunk_size == chunk_size - 1:
-      print(datetime.now(), 'writing chunk plane', z//chunk_size)
-      data.write_warp_planes(fid, warped, z-chunk_size+1, z+1)
+  if z % chunkz == chunkz - 1:
+      print(datetime.now(), 'writing chunk plane', z//chunkz)
+      data.write_warp_planes(fid, warped, z-chunkz+1, z+1)
   elif z == max_z:
       print(datetime.now(), 'writing last chunk plane')
-      data.write_warp_planes(fid, warped[:z % chunk_size + 1],
-                             z//chunk_size * chunk_size, z+1)
+      data.write_warp_planes(fid, warped[:z % chunkz + 1],
+                             z//chunkz * chunkz, z+1)

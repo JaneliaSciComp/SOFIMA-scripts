@@ -31,14 +31,14 @@ def load_invmap(basepath, params):
     invmap = np.load(os.path.join(basepath, 'invmap.'+params+'.npy'))
     return invmap
 
-def open_warp(shape, chunk_size, basepath, params):
+def open_warp(shape, chunkxy, chunkz, basepath, params):
     return ts.open({
         'driver': 'zarr',
         'kvstore': {"driver":"file", "path":os.path.join(basepath, 'warped.'+params+'.zarr')},
         'metadata': {
             "compressor":{"id":"zstd","level":3},
             "shape":shape,
-            "chunks":[chunk_size,chunk_size,chunk_size],
+            "chunks":[chunkz,chunkxy,chunkxy],
             "fill_value":0,
             'dtype': '|u1',
             'dimension_separator': '/',

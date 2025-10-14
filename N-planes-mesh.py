@@ -78,11 +78,6 @@ parser.add_argument(
     type=int,
     help="how many times to iteratively compute the flow"
 )
-parser.add_argument(
-    "batch_size",
-    type=int,
-    help="how many patches to process simultaneously",
-)
 
 args = parser.parse_args()
 
@@ -96,7 +91,6 @@ scales_int = [int(x) for x in args.scales.split(',')]
 k0 = args.k0
 k = args.k
 reps = args.reps
-batch_size = args.batch_size
 
 print("data_loader =", data_loader)
 print("basepath =", basepath)
@@ -108,7 +102,6 @@ print("scales =", scales_int)
 print("k0 =", k0)
 print("k =", k)
 print("reps =", reps)
-print("batch_size =", batch_size)
 
 data = importlib.import_module(os.path.basename(data_loader))
 
