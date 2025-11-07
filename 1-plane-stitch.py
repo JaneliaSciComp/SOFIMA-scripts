@@ -102,8 +102,8 @@ tile_map = data.load_data(planepath, scale_int)
 
 from sofima import stitch_rigid
 cx, cy = stitch_rigid.compute_coarse_offsets(data.tile_space, tile_map,
-            overlaps_xy=((200//2**scale_int, 300//2**scale_int),
-                         (200//2**scale_int, 300//2**scale_int)),
+            overlaps_xy=((100//2**scale_int, 200//2**scale_int),
+                         (100//2**scale_int, 200//2**scale_int)),
             min_overlap=patch_size)
 
 coarse_mesh = stitch_rigid.optimize_coarse_mesh(cx, cy)
@@ -192,7 +192,7 @@ meshes = {idx_to_key[i]: np.array(x[:, i:i+1 :, :]) * 2**scale_int for i in rang
 tile_map0 = data.load_data(planepath, 0)
 
 # Warp the tiles into a single image.
-stitched, _ = warp.render_tiles(tile_map0, meshes,
+stitched, _ = warp.render_tiles(tile_map0, meshes, margin = 100,
          stride=(stride * 2**scale_int, stride * 2**scale_int))
 
 data.save_plane(outpath, z, stitched, write_metadata, chunk_size)
