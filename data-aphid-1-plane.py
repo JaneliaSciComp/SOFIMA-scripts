@@ -53,7 +53,7 @@ def save_plane(outpath, z, stitched, level, write_metadata, chunk_size):
         'create': True,
         'open': True,
         'delete_existing': False,
-        'assume_metadata': write_metadata==1,
+        'assume_metadata': write_metadata==0,
         }).result()
     za[z,:,:] = stitched
 
