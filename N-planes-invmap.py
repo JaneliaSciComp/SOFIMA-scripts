@@ -94,10 +94,9 @@ data = importlib.import_module(os.path.basename(data_loader))
 
 params = 'minz'+str(min_z)+'.maxz'+str(max_z)+'.patch'+str(patch_size)+'.stride'+str(stride)+'.scales'+args.scales.replace(",",'')+'.k0'+str(k0)+'.k'+str(k)+'.reps'+str(reps)
 
-flow = data.load_flow(basepath, params)
 mesh = data.load_mesh(basepath, params)
 
-boxMx = bounding_box.BoundingBox(start=(0, 0, 0), size=(flow.shape[-1], flow.shape[-2], 1))
+boxMx = bounding_box.BoundingBox(start=(0, 0, 0), size=(mesh.shape[-1], mesh.shape[-2], 1))
 
 s_min = min(scales_int)
 stride_min = stride * (2**s_min)
