@@ -32,7 +32,9 @@ def load_data(planepath, scale):
             tile_id = tile_id_map[y, x]
             with h5py.File(f'{planepath}', 'r') as fid:
                 d = fid[f'{tile_id}/mipmap.{scale}']
-                tile_map[(x, y)] = np.array(d[0,*crop])
+                idx1 = slice(*[c//2**scale if c else c for c in crop[0]])
+                idx2 = slice(*[c//2**scale if c else c for c in crop[1]])
+                tile_map[(x, y)] = np.array(d[0,idx1,idx2])
 
     return tile_map
 
