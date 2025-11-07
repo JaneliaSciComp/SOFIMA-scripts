@@ -33,9 +33,8 @@ parser.add_argument(
     help="slice of interest"
 )
 parser.add_argument(
-    "level",
-    type=int,
-    help="the spatial scale / resolution to stitch together"
+    "scale",
+    help="the spatial resolution to use when computing the flow field"
 )
 parser.add_argument(
     "patch_size",
@@ -76,7 +75,7 @@ args = parser.parse_args()
 
 data_loader = args.data_loader
 z = args.z
-level = args.level
+scale_int = int(args.scale)
 patch_size = args.patch_size
 stride = args.stride
 k0 = args.k0
@@ -87,7 +86,7 @@ chunk_size = args.chunk_size
 
 print("data_loader =", data_loader)
 print("z =", z)
-print("level =", level)
+print("scale =", scale_int)
 print("patch_size =", patch_size)
 print("stride =", stride)
 print("k0 =", k0)
@@ -99,11 +98,13 @@ print("chunk_size =", chunk_size)
 data = importlib.import_module(os.path.basename(data_loader))
 
 planepath = data.get_tilepath(z)
-tile_map = data.load_data(planepath, level)
+tile_map = data.load_data(planepath, scale_int)
 
 from sofima import stitch_rigid
 cx, cy = stitch_rigid.compute_coarse_offsets(data.tile_space, tile_map,
-            overlaps_xy=((200, 300), (200, 300)), min_overlap=0)
+            overlaps_xy=((200//2**scale_int, 300//2**scale_int),
+                         (200//2**scale_int, 300//2**scale_int)),
+            min_overlap=patch_size)
 
 coarse_mesh = stitch_rigid.optimize_coarse_mesh(cx, cy)
 
@@ -186,15 +187,15 @@ from sofima import warp
 
 # Unpack meshes into a dictionary.
 idx_to_key = {v: k for k, v in key_to_idx.items()}
-meshes = {idx_to_key[i]: np.array(x[:, i:i+1 :, :]) for i in range(x.shape[1])}
+meshes = {idx_to_key[i]: np.array(x[:, i:i+1 :, :]) * 2**scale_int for i in range(x.shape[1])}
+
+tile_map0 = data.load_data(planepath, 0)
 
 # Warp the tiles into a single image.
-stitched, _ = warp.render_tiles(tile_map, meshes, stride=(stride, stride))
+stitched, _ = warp.render_tiles(tile_map0, meshes,
+         stride=(stride * 2**scale_int, stride * 2**scale_int))
 
-# Warp the tiles into a single image.
-stitched, _ = warp.render_tiles(tile_map, meshes, stride=(stride, stride))
-
-data.save_plane(outpath, z, stitched, level, write_metadata, chunk_size)
+data.save_plane(outpath, z, stitched, write_metadata, chunk_size)
 
 
 if debug:

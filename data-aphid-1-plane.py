@@ -16,7 +16,7 @@ def get_tilepath(Z):
     assert len(s)==1
     return s.pop()
 
-def load_data(planepath, level):
+def load_data(planepath, scale):
     # Define the tile space. This specifies how the different tiles are distributed
     # in space, and should normally be derived from the metadata provided by the
     # microscope.
@@ -31,17 +31,17 @@ def load_data(planepath, level):
         for x in range(tile_id_map.shape[1]):
             tile_id = tile_id_map[y, x]
             with h5py.File(f'{planepath}', 'r') as fid:
-                d = fid[f'{tile_id}/mipmap.{level}']
+                d = fid[f'{tile_id}/mipmap.{scale}']
                 tile_map[(x, y)] = np.array(d[0,*crop])
 
     return tile_map
 
-def save_plane(outpath, z, stitched, level, write_metadata, chunk_size):
+def save_plane(outpath, z, stitched, write_metadata, chunk_size):
     r = requests.get(f"{url}/zValues")
     nz = int(float(r.text[1:-1].split(',')[-1]))
     za = ts.open({
         'driver': 'zarr',
-        'kvstore': {"driver":"file", "path":os.path.join(outpath, 'stitched.s'+str(level)+'.zarr')},
+        'kvstore': {"driver":"file", "path":os.path.join(outpath, 'stitched.s0.zarr')},
         'metadata': {
             "compressor": {"id":"zstd", "level":3},
             "shape": [nz,*stitched.shape],
