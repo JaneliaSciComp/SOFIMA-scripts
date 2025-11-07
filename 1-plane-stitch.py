@@ -107,6 +107,15 @@ cx, cy = stitch_rigid.compute_coarse_offsets(data.tile_space, tile_map,
 
 coarse_mesh = stitch_rigid.optimize_coarse_mesh(cx, cy)
 
+if debug:
+    for key in tile_map.keys():
+        kstr = str(key).replace(' ','')
+        np.save(os.path.join(outpath, "tile-map"+kstr+".npy"), tile_map[key])
+    np.save(os.path.join(outpath, "cx.npy"), cx)
+    np.save(os.path.join(outpath, "cy.npy"), cy)
+    np.save(os.path.join(outpath, "coarse-mesh.npy"), coarse_mesh)
+    
+
 from sofima import stitch_elastic
 
 # The stride (in pixels) specifies the resolution at which to compute the flow
@@ -124,26 +133,32 @@ from sofima import flow_utils
 
 kwargs = {"min_peak_ratio": 1.4, "min_peak_sharpness": 1.4,
           "max_deviation": 5, "max_magnitude": 0}
-fine_x = {k: flow_utils.clean_flow(v[:, np.newaxis, ...], **kwargs)[:, 0, :, :]
+fine_x2 = {k: flow_utils.clean_flow(v[:, np.newaxis, ...], **kwargs)[:, 0, :, :]
           for k, v in fine_x.items()}
-fine_y = {k: flow_utils.clean_flow(v[:, np.newaxis, ...], **kwargs)[:, 0, :, :]
+fine_y2 = {k: flow_utils.clean_flow(v[:, np.newaxis, ...], **kwargs)[:, 0, :, :]
           for k, v in fine_y.items()}
 
 kwargs = {"min_patch_size": 10, "max_gradient": -1, "max_deviation": -1}
-fine_x = {k: flow_utils.reconcile_flows([v[:, np.newaxis, ...]], **kwargs)[:, 0, :, :]
-          for k, v in fine_x.items()}
-fine_y = {k: flow_utils.reconcile_flows([v[:, np.newaxis, ...]], **kwargs)[:, 0, :, :]
-          for k, v in fine_y.items()}
+fine_x3 = {k: flow_utils.reconcile_flows([v[:, np.newaxis, ...]], **kwargs)[:, 0, :, :]
+          for k, v in fine_x2.items()}
+fine_y3 = {k: flow_utils.reconcile_flows([v[:, np.newaxis, ...]], **kwargs)[:, 0, :, :]
+          for k, v in fine_y2.items()}
 
 from sofima import mesh
 
-data_x = (cx, fine_x, offsets_x)
-data_y = (cy, fine_y, offsets_y)
+data_x = (cx, fine_x3, offsets_x)
+data_y = (cy, fine_y3, offsets_y)
 
 fx, fy, x, nbors, key_to_idx = stitch_elastic.aggregate_arrays(
     data_x, data_y, list(tile_map.keys()),
     coarse_mesh[:, 0, ...], stride=(stride, stride),
     tile_shape=next(iter(tile_map.values())).shape)
+
+if debug:
+    np.save(os.path.join(outpath, "flow.npy"), x)
+    idx_to_key = {v: k for k, v in key_to_idx.items()}
+    np.save(os.path.join(outpath, "flow_idx2key.npy"),
+            [idx_to_key[i] for i in range(len(idx_to_key))])
 
 @jax.jit
 def prev_fn(x):
@@ -164,6 +179,8 @@ config = mesh.IntegrationConfig(dt=0.001, gamma=0., k0=k0, k=k, stride=(stride, 
                                 start_cap=0.1, final_cap=10., remove_drift=True)
 
 x, ekin, t = mesh.relax_mesh(x, None, config, prev_fn=prev_fn)
+
+if debug:  np.save(os.path.join(outpath, "mesh.npy"), x)
 
 from sofima import warp
 
