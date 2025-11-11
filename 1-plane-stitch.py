@@ -57,6 +57,10 @@ parser.add_argument(
     help="spring constant for intra-section springs"
 )
 parser.add_argument(
+    "margins",
+    help="a comma-separated list specifying the pixels to crop from the (top, bottom, left, right) of each tile when warping.  e.g. 150,50,150,50"
+)
+parser.add_argument(
     "outpath",
     help="path to save the results"
 )
@@ -80,6 +84,7 @@ patch_size = args.patch_size
 stride = args.stride
 k0 = args.k0
 k = args.k
+margins = tuple(int(x) for x in args.margins.split(','))
 outpath = args.outpath
 write_metadata = args.write_metadata
 chunk_size = args.chunk_size
@@ -91,6 +96,7 @@ print("patch_size =", patch_size)
 print("stride =", stride)
 print("k0 =", k0)
 print("k =", k)
+print("margins =", margins)
 print("outpath =", outpath)
 print("write_metadata =", write_metadata)
 print("chunk_size =", chunk_size)
@@ -192,7 +198,8 @@ meshes = {idx_to_key[i]: np.array(x[:, i:i+1 :, :]) * 2**scale_int for i in rang
 tile_map0 = data.load_data(planepath, 0)
 
 # Warp the tiles into a single image.
-stitched, _ = warp.render_tiles(tile_map0, meshes, margin = 100,
+margin_overrides = {k:margins for k in tile_map0.keys()}
+stitched, _ = warp.render_tiles(tile_map0, meshes, margin_overrides=margin_overrides,
          stride=(stride * 2**scale_int, stride * 2**scale_int))
 
 data.save_plane(outpath, z, stitched, write_metadata, chunk_size)
