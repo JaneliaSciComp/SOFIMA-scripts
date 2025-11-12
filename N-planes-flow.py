@@ -28,6 +28,8 @@ from skimage.transform import downscale_local_mean
 
 import importlib
 
+debug = False  # save intermediate steps
+
 # Parse command line arguments
 parser = argparse.ArgumentParser(
     description="computes the flow fields between a pair of slices - GPU intensive"
@@ -266,3 +268,11 @@ plt.savefig("flows-f2-f2hi-d.tif", dpi=300)
 params = 'minz'+str(min_z)+'.maxz'+str(max_z)+'.patch'+str(patch_size)+'.stride'+str(stride)+'.scales'+args.scales.replace(",",'')+'.k0'+str(k0)+'.k'+str(k)+'.reps'+str(reps)
 
 data.save_flow(final_flow, basepath, params)
+
+if debug:
+    for s in scales_int:
+        flows = np.transpose(np.array(fNx[s]), [1, 0, 2, 3])
+        flows = np.pad(flows, [[0, 0], [0, 0], [pad, pad], [pad, pad]], constant_values=np.nan)
+        np.save(os.path.join(basepath, 'fNx.s'+str(s)+'.'+params+'.npy'), flows)
+        np.save(os.path.join(basepath, 'fN.s'+str(s)+'.'+params+'.npy'), fN[s])
+        np.save(os.path.join(basepath, 'fN_hires.s'+str(s)+'.'+params+'.npy'), fN_hires[s])
