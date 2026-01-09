@@ -92,9 +92,9 @@ print("reps =", reps)
 
 data = importlib.import_module(os.path.basename(data_loader))
 
-params = 'minz'+str(min_z)+'.maxz'+str(max_z)+'.patch'+str(patch_size)+'.stride'+str(stride)+'.scales'+args.scales.replace(",",'')+'.k0'+str(k0)+'.k'+str(k)+'.reps'+str(reps)
+params = 'patch'+str(patch_size)+'.stride'+str(stride)+'.scales'+args.scales.replace(",",'')+'.k0'+str(k0)+'.k'+str(k)+'.reps'+str(reps)
 
-mesh = data.load_mesh(basepath, params)
+mesh = data.load_mesh(basepath, params, min_z, max_z)
 
 boxMx = bounding_box.BoundingBox(start=(0, 0, 0), size=(mesh.shape[-1], mesh.shape[-2], 1))
 
@@ -105,4 +105,4 @@ print(datetime.now(), 'inverting map')
 invmap = map_utils.invert_map(mesh, boxMx, boxMx, stride_min)
 
 print(datetime.now(), 'saving inverted map')
-data.save_invmap(invmap, basepath, params)
+data.save_invmap(invmap, min_z, max_z, basepath, params)

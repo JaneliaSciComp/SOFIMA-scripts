@@ -105,9 +105,9 @@ print("reps =", reps)
 
 data = importlib.import_module(os.path.basename(data_loader))
 
-params = 'minz'+str(min_z)+'.maxz'+str(max_z)+'.patch'+str(patch_size)+'.stride'+str(stride)+'.scales'+args.scales.replace(",",'')+'.k0'+str(k0)+'.k'+str(k)+'.reps'+str(reps)
+params = 'patch'+str(patch_size)+'.stride'+str(stride)+'.scales'+args.scales.replace(",",'')+'.k0'+str(k0)+'.k'+str(k)+'.reps'+str(reps)
 
-flow = data.load_flow(basepath, params)
+flow = data.load_flow(basepath, params, min_z, max_z)
 
 config = mesh.IntegrationConfig(dt=0.001, gamma=0.0, k0=k0, k=k,
                                 stride=(stride, stride),
@@ -133,4 +133,4 @@ for z in range(0, flow.shape[1]):
 
 solved = np.concatenate(solved, axis=1)
 
-data.save_mesh(solved, basepath, params)
+data.save_mesh(solved, min_z, max_z, basepath, params)
