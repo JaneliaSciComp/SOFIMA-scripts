@@ -86,6 +86,11 @@ parser.add_argument(
     type=int,
     help="how many patches to process simultaneously",
 )
+parser.add_argument(
+    "write_metadata",
+    type=int,
+    help="whether to write the zarr metadata for not"
+)
 
 args = parser.parse_args()
 
@@ -100,6 +105,7 @@ k0 = args.k0
 k = args.k
 reps = args.reps
 batch_size = args.batch_size
+write_metadata = args.write_metadata
 
 print("data_loader =", data_loader)
 print("basepath =", basepath)
@@ -112,6 +118,7 @@ print("k0 =", k0)
 print("k =", k)
 print("reps =", reps)
 print("batch_size =", batch_size)
+print("write_metadata =", write_metadata)
 
 data = importlib.import_module(os.path.basename(data_loader))
 
@@ -265,9 +272,9 @@ plt.tight_layout()
 plt.savefig("flows-f2-f2hi-d.tif", dpi=300)
 '''
 
-params = 'minz'+str(min_z)+'.maxz'+str(max_z)+'.patch'+str(patch_size)+'.stride'+str(stride)+'.scales'+args.scales.replace(",",'')+'.k0'+str(k0)+'.k'+str(k)+'.reps'+str(reps)
+params = 'patch'+str(patch_size)+'.stride'+str(stride)+'.scales'+args.scales.replace(",",'')+'.k0'+str(k0)+'.k'+str(k)+'.reps'+str(reps)
 
-data.save_flow(final_flow, basepath, params)
+data.save_flow(final_flow, min_z, max_z, basepath, params, write_metadata)
 
 if debug:
     for s in scales_int:

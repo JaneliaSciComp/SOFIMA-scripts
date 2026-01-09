@@ -76,6 +76,11 @@ parser.add_argument(
     type=int,
     help="of the zarr output",
 )
+parser.add_argument(
+    "write_metadata",
+    type=int,
+    help="whether to write the zarr metadata for not"
+)
 
 args = parser.parse_args()
 
@@ -91,6 +96,7 @@ k = args.k
 reps = args.reps
 chunkxy = args.chunkxy
 chunkz = args.chunkz
+write_metadata = args.write_metadata
 
 print("data_loader =", data_loader)
 print("basepath =", basepath)
@@ -104,13 +110,12 @@ print("k =", k)
 print("reps =", reps)
 print("chunkxy =", chunkxy)
 print("chunkz =", chunkz)
+print("write_metadata =", write_metadata)
 
 data = importlib.import_module(os.path.basename(data_loader))
 
-params = 'minz'+str(min_z)+'.maxz'+str(max_z)+'.patch'+str(patch_size)+'.stride'+str(stride)+'.scales'+args.scales.replace(",",'')+'.k0'+str(k0)+'.k'+str(k)+'.reps'+str(reps)
-invmap = data.load_invmap(basepath, params)
-
-boxMx = bounding_box.BoundingBox(start=(0, 0, 0), size=(invmap.shape[-1], invmap.shape[-2], 1))
+params = 'patch'+str(patch_size)+'.stride'+str(stride)+'.scales'+args.scales.replace(",",'')+'.k0'+str(k0)+'.k'+str(k)+'.reps'+str(reps)
+invmap = data.load_invmap(basepath, params, min_z, max_z)
 
 print(datetime.now(), 'warping planes')
 
@@ -120,7 +125,7 @@ stride_min = stride * (2**s_min)
 warped0 = data.load_data(basepath, min_z,0)
 warped = np.zeros((chunkz, *warped0.shape), dtype=warped0.dtype)
 curr = np.zeros((1, chunkz, *warped0.shape), dtype=warped0.dtype)
-fid = data.open_warp([max_z+1, *warped0.shape], chunkxy, chunkz, basepath, params)
+fid = data.create_warp(warped0.shape, chunkxy, chunkz, basepath, params, write_metadata)
 
 z = min_z
 while z <= max_z:
@@ -128,25 +133,23 @@ while z <= max_z:
   print(datetime.now(), 'loading chunk plane', z//chunkz)
   while z <= max_z:
       print(datetime.now(), 'z =', z)
-      if z == min_z:
-          warped[z % chunkz,:,:] = warped0
-      else:
-          curr[:,z % chunkz,:,:] = np.transpose(np.expand_dims(np.expand_dims(
-                           data.load_data(basepath, z,0), axis=-1), axis=-1), [3, 2, 0, 1])
+      curr[:,z % chunkz,:,:] = np.transpose(np.expand_dims(np.expand_dims(
+                data.load_data(basepath, z,0), axis=-1), axis=-1), [3, 2, 0, 1])
       z += 1
       if z % chunkz == 0:
           break
 
-  if z > min_z+1:
-      sz = [*warped.shape[1:][::-1], z-z0-(z0==min_z)]
-      data_box = bounding_box.BoundingBox(start=(0, 0, 0), size=sz)
-      out_box = bounding_box.BoundingBox(start=(0, 0, 0), size=sz)
+  sz = [*warped.shape[1:][::-1], z-z0]
+  data_box = bounding_box.BoundingBox(start=(0, 0, 0), size=sz)
+  out_box = bounding_box.BoundingBox(start=(0, 0, 0), size=sz)
+  boxMx = bounding_box.BoundingBox(start=(0, 0, 0),
+                                   size=(invmap.shape[-1], invmap.shape[-2], z-z0))
 
-      print(datetime.now(), 'warping chunk plane', (z-1)//chunkz)
-      warped[(z0 + (z0==min_z)) % chunkz : (z-1) % chunkz + 1, ...] = warp.warp_subvolume(
-          curr[:,(z0 + (z0==min_z)) % chunkz : (z-1) % chunkz + 1, ...], data_box,
-          invmap[:, z0-min_z + (z0==min_z) : z-min_z+1, ...], boxMx, stride_min, out_box, 'lanczos',
-          parallelism=chunkz)[0, ...]
+  print(datetime.now(), 'warping chunk plane', (z-1)//chunkz)
+  warped[z0 % chunkz : (z-1) % chunkz + 1, ...] = warp.warp_subvolume(
+      curr[:,z0 % chunkz : (z-1) % chunkz + 1, ...], data_box,
+      invmap[:, z0-min_z : z-min_z+1, ...], boxMx, stride_min, out_box, 'lanczos',
+      parallelism=chunkz)[0, ...]
 
   print(datetime.now(), 'writing chunk plane', (z-1)//chunkz)
   data.write_warp_planes(fid, warped[z0 % chunkz : (z-1) % chunkz + 1, ...], z0, z)

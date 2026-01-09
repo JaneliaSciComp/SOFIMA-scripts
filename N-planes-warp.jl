@@ -52,7 +52,7 @@ const max_z1 = max_z + 1
 
 include(args["data_loader"])
 
-const params = string("minz", args["min_z"], ".maxz", args["max_z"], ".patch", args["patch_size"], ".stride", args["stride"], ".scales", replace(args["scales"], ","=>""), ".k0", args["k0"], ".k", args["k"], ".reps", args["reps"])
+const params = string("patch", args["patch_size"], ".stride", args["stride"], ".scales", replace(args["scales"], ","=>""), ".k0", args["k0"], ".k", args["k"], ".reps", args["reps"])
 
 const invmap = Float32.(load_invmap(args["basepath"], params))
 
