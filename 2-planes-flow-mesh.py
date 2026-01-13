@@ -6,6 +6,8 @@
 
 # this first part just does the GPU intensive stuff
 
+# ./2-planes-flow-mesh.py data-hess-2-planes /nrs/hess/data/hess_wafers_60_61/export/zarr_datasets/surface-align/run_20251219_110000/pass03-scale2 flat-w61_serial_080_to_089-w61_s080_r00-top-face.zarr flat-w61_serial_070_to_079-w61_s079_r00-bot-face.zarr 160 8 1024
+
 import os
 import argparse
 import time
@@ -26,6 +28,18 @@ parser.add_argument(
     help="Data loader module name, e.g., data-test-2-planes"
 )
 parser.add_argument(
+    "basepath",
+    help="filepath to stitched planes"
+)
+parser.add_argument(
+    "top",
+    help="filename of top of one slab"
+)
+parser.add_argument(
+    "bot",
+    help="filename of bottom of an adjacent slab"
+)
+parser.add_argument(
     "patch_size",
     type=int,
     help="Side length of (square) patch for processing (in pixels, e.g., 32)",
@@ -44,18 +58,24 @@ parser.add_argument(
 args = parser.parse_args()
 
 data_loader = args.data_loader
+basepath = args.basepath
+top = args.top
+bot = args.bot
 patch_size = args.patch_size
 stride = args.stride
 batch_size = args.batch_size
 
 print("data_loader =", data_loader)
+print("basepath =", basepath)
+print("top =", top)
+print("bot =", bot)
 print("patch_size =", patch_size)
 print("stride =", stride)
 print("batch_size =", batch_size)
 
 data = importlib.import_module(os.path.basename(data_loader))
 
-ttop, tbot = data.load_data()
+ttop, tbot = data.load_data(basepath, top, bot)
 
 #calculate the flow fields
 
@@ -103,6 +123,7 @@ t0 = time.time()
 solved, e_kin, num_steps = mesh.relax_mesh(solved, flow_clean, config)
 print("relax_mesh took", time.time() - t0, "sec")
 
-params = '.patch'+str(patch_size)+'.stride'+str(stride)
+params = 'patch'+str(patch_size)+'.stride'+str(stride)+'.top'+top
 
-data.save_flow_mesh(flow_clean, solved, params)
+data.save_flow(flow_clean, basepath, params)
+data.save_mesh(solved, basepath, params)

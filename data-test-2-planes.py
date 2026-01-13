@@ -12,7 +12,7 @@ nxc,nyc=128,64
 nxtc,nytc=64,32
 dtype=np.uint8
 
-def load_data():
+def load_data(basepath, top, bot):
     tmp = np.random.randint(0, np.iinfo(dtype).max//2, size=(nx+shift,ny+shift), dtype=dtype)
     tmp[nx//2:shift+nx//2, ny//2:shift+ny//2] = np.iinfo(dtype).max
     ttop = tmp[:nx, :ny]
@@ -29,18 +29,21 @@ def tight_crop_data(ttop, tbot):
     iy = (ny-nytc)//2
     return ttop[ix:ix+nxtc, iy:iy+nytc], tbot[ix:ix+nxtc, iy:iy+nytc], (iy,ix), (nytc,nxtc)
 
-def save_flow_mesh(flow, mesh, params):
+def save_flow(flow, basepath, params):
     np.save('1.flow'+params+'.npy', flow)
-    np.save('2.mesh'+params+'.npy', mesh)
 
-def load_flow_mesh(params):
+def save_mesh(mesh, basepath, params):
+    return np.save('2.mesh'+params+'.npy', mesh)
+
+def load_flow(basepath, params):
     flow = np.load('1.flow'+params+'.npy')
-    mesh = np.load('2.mesh'+params+'.npy')
-    return flow, mesh
 
-def save_invmap(invmap, params):
+def load_mesh(basepath, params):
+    return np.load('2.mesh'+params+'.npy')
+
+def save_invmap(invmap, basepath, params):
     np.save('3.invmap'+params+'.npy', invmap)
 
-def load_invmap(params):
+def load_invmap(basepath, params):
     invmap = np.load('3.invmap'+params+'.npy')
     return invmap
