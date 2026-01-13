@@ -47,3 +47,19 @@ def save_invmap(invmap, basepath, params):
 def load_invmap(basepath, params):
     invmap = np.load('3.invmap'+params+'.npy')
     return invmap
+
+def write_warp(shape, chunk_size, basepath, params, planes):
+    return ts.open({
+        'driver': 'zarr',
+        'kvstore': {"driver":"file", "path":'4.warped.'+params+'.zarr')},
+        'metadata': {
+            "compressor":{"id":"zstd","level":3},
+            "shape":shape,
+            "chunks":[2,16,16],
+            "fill_value":0,
+            'dtype': '|u1',
+            'dimension_separator': '/',
+        },
+        'create': True,
+        'delete_existing': True,
+        }).result().write(planes).result()

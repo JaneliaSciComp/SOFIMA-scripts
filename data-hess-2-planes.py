@@ -37,24 +37,21 @@ def load_invmap(basepath, params):
     invmap = np.load(os.path.join(basepath, 'invmap.'+params+'.npy'))
     return invmap
 
-def open_warp(shape, chunk_size, basepath, params):
+def write_warp(shape, chunk_size, basepath, params, planes):
     return ts.open({
         'driver': 'zarr',
         'kvstore': {"driver":"file", "path":os.path.join(basepath, 'warped.'+params+'.zarr')},
         'metadata': {
             "compressor":{"id":"zstd","level":3},
             "shape":shape,
-            "chunks":[chunk_size,chunk_size,chunk_size],
+            "chunks":[2,chunk_size,chunk_size],
             "fill_value":0,
             'dtype': '|u1',
             'dimension_separator': '/',
         },
         'create': True,
         'delete_existing': True,
-        }).result()
-
-def write_warp_planes(fid, planes, z0, z1):
-    return fid[:,:,z0:z1].write(planes).result()
+        }).result().write(planes).result()
 
 
 # google cloud
