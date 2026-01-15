@@ -54,7 +54,7 @@ include(args["data_loader"])
 
 const params = string("patch", args["patch_size"], ".stride", args["stride"], ".scales", replace(args["scales"], ","=>""), ".k0", args["k0"], ".k", args["k"], ".reps", args["reps"])
 
-const invmap = Float32.(load_invmap(args["basepath"], params))
+const invmap = -Float32.(load_invmap(args["basepath"], params))
 
 const curr = load_data(args["basepath"], 0)
 const acs = DiskArrays.approx_chunksize(DiskArrays.eachchunk(curr))
