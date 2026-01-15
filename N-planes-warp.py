@@ -133,8 +133,11 @@ while z <= max_z:
   print(datetime.now(), 'loading chunk plane', z//chunkz)
   while z <= max_z:
       print(datetime.now(), 'z =', z)
-      curr[:,z % chunkz,:,:] = np.transpose(np.expand_dims(np.expand_dims(
-                data.load_data(basepath, z,0), axis=-1), axis=-1), [3, 2, 0, 1])
+      if z == min_z:
+          curr[:,z % chunkz,:,:] = warped0
+      else:
+          curr[:,z % chunkz,:,:] = np.transpose(np.expand_dims(np.expand_dims(
+                    data.load_data(basepath, z,0), axis=-1), axis=-1), [3, 2, 0, 1])
       z += 1
       if z % chunkz == 0:
           break
