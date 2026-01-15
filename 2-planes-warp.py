@@ -5,7 +5,8 @@
 # this third part only uses the CPU (and also a lot of RAM).  it depends on the
 # output of 2-planes-invmap.py
 
-# ./2-planes-warp.py data-hess-2-planes /nrs/hess/data/hess_wafers_60_61/export/zarr_datasets/surface-align/run_20251219_110000/pass03-scale2 flat-w61_serial_080_to_089-w61_s080_r00-top-face.zarr flat-w61_serial_070_to_079-w61_s079_r00-bot-face.zarr 160 8 1024
+# bsub -Phess -n8 -Is /bin/zsh
+# conda run -n multi-sem --no-capture-output python ./2-planes-warp.py data-hess-2-planes /nrs/hess/data/hess_wafers_60_61/export/zarr_datasets/surface-align/run_20251219_110000/pass03-scale2 flat-w61_serial_080_to_089-w61_s080_r00-top-face.zarr flat-w61_serial_070_to_079-w61_s079_r00-bot-face.zarr 160 8 1024
 
 import sys
 import os
