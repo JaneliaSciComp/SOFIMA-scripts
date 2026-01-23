@@ -40,12 +40,12 @@ parser.add_argument(
     help="filepath to stitched planes"
 )
 parser.add_argument(
-    "min_z",
+    "z0",
     type=int,
     help="lower bound on the planes to align"
 )
 parser.add_argument(
-    "max_z",
+    "z1",
     type=int,
     help="upper bound on the planes to align"
 )
@@ -83,8 +83,8 @@ args = parser.parse_args()
 
 data_loader = args.data_loader
 basepath = args.basepath
-min_z = args.min_z
-max_z = args.max_z
+z0 = args.z0
+z1 = args.z1
 patch_size = args.patch_size
 stride = args.stride
 scales_int = [int(x) for x in args.scales.split(',')]
@@ -94,8 +94,8 @@ reps = args.reps
 
 print("data_loader =", data_loader)
 print("basepath =", basepath)
-print("min_z =", min_z)
-print("max_z =", max_z)
+print("z0 =", z0)
+print("z1 =", z1)
 print("patch_size =", patch_size)
 print("stride =", stride)
 print("scales =", scales_int)
@@ -107,7 +107,10 @@ data = importlib.import_module(os.path.basename(data_loader))
 
 params = 'patch'+str(patch_size)+'.stride'+str(stride)+'.scales'+args.scales.replace(",",'')+'.k0'+str(k0)+'.k'+str(k)+'.reps'+str(reps)
 
-flow = data.load_flow(basepath, params, min_z, max_z)
+if z0 < z1:
+    flow = data.load_flow(basepath, params, z0, z1)
+else:
+    flow = -data.load_flow(basepath, params, z1, z0)
 
 config = mesh.IntegrationConfig(dt=0.001, gamma=0.0, k0=k0, k=k,
                                 stride=(stride, stride),
@@ -127,9 +130,9 @@ if write_metadata:
   data.write_mesh_plane(fid, solved, z0)
 
 print(datetime.now(), 'composing maps')
-for z in range(min_z+1, max_z+1):
+for z in range(z0+1, z1+1) if z0 < z1 else range(z0-1, z1-1, -1):
   print(datetime.now(), 'z =', z)
-  zf = z - min_z - 1
+  zf = z-z0-1 if z0<z1 else z-z1
   prev = map_utils.compose_maps_fast(flow[:, zf:zf+1, ...], origin, stride_min,
                                      solved, origin, stride_min)
   x = np.zeros_like(solved)
