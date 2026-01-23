@@ -115,22 +115,24 @@ config = mesh.IntegrationConfig(dt=0.001, gamma=0.0, k0=k0, k=k,
                                 stop_v_max=0.005, dt_max=1000, start_cap=0.01,
                                 final_cap=10, prefer_orig_order=True)
 
-solved = [np.zeros_like(flow[:, 0:1, ...])]
+solved = np.zeros_like(flow[:, 0:1, ...])
 origin = jnp.array([0., 0.])
 
 s_min = min(scales_int)
 stride_min = stride * (2**s_min)
 
+write_metadata=1
+fid = data.create_mesh(solved.shape, basepath, params, write_metadata)
+if write_metadata:
+  data.write_mesh_plane(fid, solved, z0)
+
 print(datetime.now(), 'composing maps')
-for z in range(0, flow.shape[1]):
+for z in range(min_z+1, max_z+1):
   print(datetime.now(), 'z =', z)
-  prev = map_utils.compose_maps_fast(flow[:, z:z+1, ...], origin, stride_min,
-                                     solved[-1], origin, stride_min)
-  x = np.zeros_like(solved[0])
+  zf = z - min_z - 1
+  prev = map_utils.compose_maps_fast(flow[:, zf:zf+1, ...], origin, stride_min,
+                                     solved, origin, stride_min)
+  x = np.zeros_like(solved)
   x, e_kin, num_steps = mesh.relax_mesh(x, prev, config)
-  x = np.array(x)
-  solved.append(x)
-
-solved = np.concatenate(solved, axis=1)
-
-data.save_mesh(solved, min_z, max_z, basepath, params)
+  solved = np.array(x)
+  data.write_mesh_plane(fid, solved, z)
