@@ -108,8 +108,8 @@ tile_map = data.load_data(planepath, scale_int)
 
 from sofima import stitch_rigid
 cx, cy = stitch_rigid.compute_coarse_offsets(data.tile_space, tile_map,
-            overlaps_xy=((100//2**scale_int, 200//2**scale_int),
-                         (100//2**scale_int, 200//2**scale_int)),
+            overlaps_xy=(tuple(x//2**scale_int for x in (100, 200, 400, 800)),
+                         tuple(x//2**scale_int for x in (100, 200, 400, 800))),
             min_overlap=patch_size)
 
 coarse_mesh = stitch_rigid.optimize_coarse_mesh(cx, cy)
