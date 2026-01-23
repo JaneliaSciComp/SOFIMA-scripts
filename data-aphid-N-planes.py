@@ -42,7 +42,7 @@ def load_flow(basepath, params, z0, z1):
         'open': True,
         }).result()[:,z0+1:z1+1,...].read().result()
 
-def save_mesh(mesh, min_z, max_z, basepath, params):
+def create_mesh(shape, basepath, params, write_metadata):
     r = requests.get(f"{url}/zValues")
     nz = int(float(r.text[1:-1].split(',')[-1]))
     return ts.open({
@@ -50,8 +50,8 @@ def save_mesh(mesh, min_z, max_z, basepath, params):
         'kvstore': {"driver":"file", "path":os.path.join(basepath, 'mesh.'+params+'.zarr')},
         'metadata': {
             "compressor":{"id":"zstd","level":3},
-            "shape":[mesh.shape[0],nz,*mesh.shape[2:]],
-            "chunks":[mesh.shape[0],1,*mesh.shape[2:]],
+            "shape":[shape[0],nz,*shape[2:]],
+            "chunks":[shape[0],1,*shape[2:]],
             "fill_value":0,
             'dtype': '<f8',
             'dimension_separator': '/',
@@ -59,7 +59,11 @@ def save_mesh(mesh, min_z, max_z, basepath, params):
         'create': True,
         'open': True,
         'delete_existing': False,
-        }).result()[:,min_z+1:max_z+1,...].write(mesh[:,1:,...]).result()
+        'assume_metadata': write_metadata==0,
+        }).result()
+
+def write_mesh_plane(fid, plane, z):
+    return fid[:,z:z+1,...].write(plane).result()
 
 def load_mesh(basepath, params, z0, z1):
     return ts.open({
