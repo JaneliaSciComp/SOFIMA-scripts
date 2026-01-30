@@ -16,14 +16,14 @@ function warp_chunk(chunk, warped, invmap_xextrema, invmap_yextrema, tform, ccur
 end
 
 function warp_slab(warped, ccurr, zs)
-    invmap_xextrema = [extrema(filter(!isnan, invmap[1,z-min_z1+1,:,:])) for z in zs]
-    invmap_yextrema = [extrema(filter(!isnan, invmap[2,z-min_z1+1,:,:])) for z in zs]
+    invmap_xextrema = [extrema(filter(!isnan, invmap[:,:,z-min_z1+1,1])) for z in zs]
+    invmap_yextrema = [extrema(filter(!isnan, invmap[:,:,z-min_z1+1,2])) for z in zs]
     tform = map(zs) do z
-        itpx = extrapolate(scale(interpolate(invmap[1,z-min_z1+1,:,:], BSpline(Linear())), sx, sy), NaN32)
-        itpy = extrapolate(scale(interpolate(invmap[2,z-min_z1+1,:,:], BSpline(Linear())), sx, sy), NaN32)
+        itpx = extrapolate(scale(interpolate(invmap[:,:,z-min_z1+1,1], BSpline(Linear())), sx, sy), NaN32)
+        itpy = extrapolate(scale(interpolate(invmap[:,:,z-min_z1+1,2], BSpline(Linear())), sx, sy), NaN32)
         function tform(p::SVector{2})
-            x::Float32 = itpx(p[2], p[1])
-            y::Float32 = itpy(p[2], p[1])
+            x::Float32 = itpx(p[1], p[2])
+            y::Float32 = itpy(p[1], p[2])
             SVector{2}(p[1]+x, p[2]+y)
         end
     end

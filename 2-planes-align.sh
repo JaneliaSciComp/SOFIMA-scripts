@@ -27,7 +27,7 @@ bsub_flags=(-Phess -n2 -W 1440)
 logfile=$basepath/invmap-$params.log
 bsub_stdout=`bsub ${bsub_flags[@]} -w "$dependency" -oo $logfile \
     conda run -n multi-sem --no-capture-output \
-    python -u ./2-planes-invmap.py $data_loader $basepath $top $patch_size $stride`
+    python -u ./2-planes-invmap.py $data_loader $basepath $top $patch_size $stride $chunk`
 jobid=`expr match "$bsub_stdout" "$jobid_regex"`
 dependency=done\($jobid\)
 
