@@ -30,20 +30,36 @@ def save_mesh(mesh, basepath, params):
 def load_mesh(basepath, params):
     return np.load(os.path.join(basepath, 'mesh.'+params+'.npy'))
 
-def save_invmap(invmap, basepath, params):
-    np.save(os.path.join(basepath, 'invmap.'+params+'.npy'), invmap)
+def save_invmap(chunk_size, basepath, params, invmap):
+    return ts.open({
+        'driver': 'zarr',
+        'kvstore': {"driver":"file", "path":os.path.join(basepath, 'invmap.'+params+'.zarr')},
+        'metadata': {
+            "compressor":{"id":"zstd","level":3},
+            "shape":invmap.shape,
+            "chunks":[2,1,chunk_size,chunk_size],
+            "fill_value":0,
+            'dtype': '<f8',
+            'dimension_separator': '/',
+        },
+        'create': True,
+        'delete_existing': True,
+        }).result().write(invmap).result()
 
 def load_invmap(basepath, params):
-    invmap = np.load(os.path.join(basepath, 'invmap.'+params+'.npy'))
-    return invmap
+    return ts.open({
+        'driver': 'zarr',
+        'kvstore': {"driver":"file", "path":os.path.join(basepath, 'invmap.'+params+'.zarr')},
+        'open': True,
+        }).result().read().result()
 
-def write_warp(shape, chunk_size, basepath, params, planes):
+def write_warp(chunk_size, basepath, params, planes):
     return ts.open({
         'driver': 'zarr',
         'kvstore': {"driver":"file", "path":os.path.join(basepath, 'warped.'+params+'.zarr')},
         'metadata': {
             "compressor":{"id":"zstd","level":3},
-            "shape":shape,
+            "shape":planes.shape,
             "chunks":[2,chunk_size,chunk_size],
             "fill_value":0,
             'dtype': '|u1',

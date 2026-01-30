@@ -52,8 +52,8 @@ const ctop = DiskArrays.cache(top, maxsize=9*acs[1]*acs[2]*sizeof(eltype(top)))
 
 const stride = args["stride"]
 
-const sx = range(0, size(top,2)-1, step=stride)
-const sy = range(0, size(top,1)-1, step=stride)
+const sx = range(0, size(top,1)-1, step=stride)
+const sy = range(0, size(top,2)-1, step=stride)
 
 const warped = open_warp((size(top)...,2), args["chunk"], 2, args["basepath"], params)
 

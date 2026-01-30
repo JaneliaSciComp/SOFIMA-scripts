@@ -97,4 +97,4 @@ warped[1, ...] = warp.warp_subvolume(
         curr, data_box, invmap, boxMx, stride, out_box, 'lanczos')[0, ...]
 
 print(datetime.now(), 'writing data')
-data.write_warp((2, *tbot.shape), chunk, basepath, params, warped)
+data.write_warp(chunk, basepath, params, warped)

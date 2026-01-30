@@ -42,6 +42,11 @@ parser.add_argument(
     type=int,
     help="Distance of adjacent patches (in pixels, e.g., 8)"
 )
+parser.add_argument(
+    "chunk",
+    type=int,
+    help="of the zarr output",
+)
 
 args = parser.parse_args()
 
@@ -50,12 +55,14 @@ basepath = args.basepath
 top = args.top
 patch_size = args.patch_size
 stride = args.stride
+chunk = args.chunk
 
 print("data_loader =", data_loader)
 print("basepath =", basepath)
 print("top =", top)
 print("patch_size =", patch_size)
 print("stride =", stride)
+print("chunk =", chunk)
 
 data = importlib.import_module(os.path.basename(data_loader))
 
@@ -72,4 +79,4 @@ t0 = time.time()
 invmap = map_utils.invert_map(mesh, box1x, box1x, stride)
 print("invert_map took", time.time() - t0, "sec")
 
-data.save_invmap(invmap, basepath, params)
+data.save_invmap(chunk, basepath, params, invmap)
