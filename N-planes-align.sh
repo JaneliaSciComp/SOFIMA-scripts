@@ -62,11 +62,12 @@ jobid=`expr match "$bsub_stdout" "$jobid_regex"`
 invmap_dependency=${invmap_dependency}done\($jobid\)'&&'
 
 # invmap
-bsub_flags=(-Pcellmap -n8 -W 10080)
+nprocs=8
+bsub_flags=(-Pcellmap -n$nprocs -W 10080)
 logfile=$basepath/invmap.${params}.log
 bsub_stdout=`bsub ${bsub_flags[@]} -oo $logfile -w ${invmap_dependency%&&} \
     conda run -n multi-sem --no-capture-output \
-    python -u ./N-planes-invmap.py $data_loader $basepath $minz $maxz $patch_size $stride $scales $k0 $k $reps`
+    python -u ./N-planes-invmap.py $data_loader $basepath $minz $maxz $patch_size $stride $scales $k0 $k $reps $nprocs`
 jobid=`expr match "$bsub_stdout" "$jobid_regex"`
 warp_dependency=done\($jobid\)
 

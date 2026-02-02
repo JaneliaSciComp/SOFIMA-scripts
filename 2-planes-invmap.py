@@ -47,6 +47,11 @@ parser.add_argument(
     type=int,
     help="of the zarr output",
 )
+parser.add_argument(
+    "parallelism",
+    type=int,
+    help="how many processes/threads to use"
+)
 
 args = parser.parse_args()
 
@@ -56,6 +61,7 @@ top = args.top
 patch_size = args.patch_size
 stride = args.stride
 chunk = args.chunk
+parallelism = args.parallelism
 
 print("data_loader =", data_loader)
 print("basepath =", basepath)
@@ -63,6 +69,7 @@ print("top =", top)
 print("patch_size =", patch_size)
 print("stride =", stride)
 print("chunk =", chunk)
+print("parallelism =", parallelism)
 
 data = importlib.import_module(os.path.basename(data_loader))
 
@@ -76,7 +83,7 @@ box1x = bounding_box.BoundingBox(start=(0, 0, 0), size=(flow.shape[-1], flow.sha
 # Image warping requires an inverse coordinate map
 # does NOT use GPU, but does use a lot of RAM
 t0 = time.time()
-invmap = map_utils.invert_map(mesh, box1x, box1x, stride)
+invmap = map_utils.invert_map(mesh, box1x, box1x, stride, parallelism=parallelism)
 print("invert_map took", time.time() - t0, "sec")
 
 data.save_invmap(chunk, basepath, params, invmap)
