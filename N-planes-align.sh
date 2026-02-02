@@ -85,3 +85,16 @@ for z in $(seq $minz $chunkz $((maxz-chunkz))); do
     jobid=`expr match "$bsub_stdout" "$jobid_regex"`
     multiscale_dependency=${multiscale_dependency}done\($jobid\)'&&'
 done
+
+# multiscale
+params=patch${patch_size}.stride${stride}.scales${scales//,/}.k0${k0}.k${k}.reps${reps}
+bsub_flags=(-Pcellmap -n8 -W 1440)
+logfile=$basepath/multiscale.${params}.log
+bsub_stdout=`bsub ${bsub_flags[@]} -oo $logfile -w ${multiscale_dependency%&&} \
+    conda run -n multi-sem --no-capture-output \
+    python -u ./multiscale.py $basepath warped.$params.zarr multiscale.$params.zarr 4`
+jobid=`expr match "$bsub_stdout" "$jobid_regex"`
+mv_dependency=\($jobid\)
+logfile=$basepath/cp.${params}.log
+bsub_stdout=`bsub ${bsub_flags[@]} -oo $logfile -w $mv_dependency \
+    mv $basepath/warped.$params.zarr $basepath/multiscale.$params.zarr/s0`
