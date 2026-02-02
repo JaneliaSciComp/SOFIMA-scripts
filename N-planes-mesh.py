@@ -78,6 +78,11 @@ parser.add_argument(
     type=int,
     help="how many times to iteratively compute the flow"
 )
+parser.add_argument(
+    "write_metadata",
+    type=int,
+    help="whether to write the zarr metadata for not"
+)
 
 args = parser.parse_args()
 
@@ -91,6 +96,7 @@ scales_int = [int(x) for x in args.scales.split(',')]
 k0 = args.k0
 k = args.k
 reps = args.reps
+write_metadata = args.write_metadata
 
 print("data_loader =", data_loader)
 print("basepath =", basepath)
@@ -102,6 +108,7 @@ print("scales =", scales_int)
 print("k0 =", k0)
 print("k =", k)
 print("reps =", reps)
+print("write_metadata =", write_metadata)
 
 data = importlib.import_module(os.path.basename(data_loader))
 
@@ -124,7 +131,6 @@ origin = jnp.array([0., 0.])
 s_min = min(scales_int)
 stride_min = stride * (2**s_min)
 
-write_metadata=1
 fid = data.create_mesh(solved.shape, basepath, params, write_metadata)
 if write_metadata:
   data.write_mesh_plane(fid, solved, z0)

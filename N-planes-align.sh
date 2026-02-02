@@ -7,8 +7,8 @@
 
 data_loader=$1
 basepath=$2
-min_z=$3
-max_z=$4
+minz=$3
+maxz=$4
 patch_size=$5
 stride=$6
 scales=$7
@@ -20,14 +20,16 @@ chunkxy=${12}
 chunkz=${13}
 
 jobid_regex='Job <\([0-9]*\)> '
-mesh_dependency=
 
-for z in $(seq $min_z $chunkz $((max_z-chunkz))); do
-    metadata=$((z==min_z))
+# flow
+mesh_dependency=
+for z in $(seq $minz $chunkz $((maxz-chunkz))); do
+    metadata=$((z==minz))
 
     params=minz${z}.maxz$((z+chunkz)).patch${patch_size}.stride${stride}.scales${scales//,/}.k0${k0}.k${k}.reps${reps}
 
-    bsub_flags=(-Pcellmap -n4 -gpu "num=1" -q gpu_l4)
+    # n1 for 10 planes, n4 for 100 planes
+    bsub_flags=(-Pcellmap -n1 -gpu "num=1" -q gpu_l4 -W 1440)
     logfile=$basepath/flow.${params}.log
     bsub_stdout=`bsub ${bsub_flags[@]} -oo $logfile \
         conda run -n multi-sem --no-capture-output \
@@ -36,32 +38,50 @@ for z in $(seq $min_z $chunkz $((max_z-chunkz))); do
     mesh_dependency=${mesh_dependency}done\($jobid\)'&&'
 done
 
-params=minz${min_z}.maxz${max_z}.patch${patch_size}.stride${stride}.scales${scales//,/}.k0${k0}.k${k}.reps${reps}
+params=minz${minz}.maxz${maxz}.patch${patch_size}.stride${stride}.scales${scales//,/}.k0${k0}.k${k}.reps${reps}
 
-bsub_flags=(-Pcellmap -n1 -gpu "num=1" -q gpu_l4)
-logfile=$basepath/mesh.${params}.log
+midz=$(( (maxz - minz) / 2 + minz ))
+
+# mesh, 1st half reverse order
+invmap_dependency=
+bsub_flags=(-Pcellmap -n2 -gpu "num=1" -q gpu_l4 -W 10080)
+logfile=$basepath/mesh1.${params}.log
 bsub_stdout=`bsub ${bsub_flags[@]} -oo $logfile -w ${mesh_dependency%&&} \
     conda run -n multi-sem --no-capture-output \
-    python -u ./N-planes-mesh.py $data_loader $basepath $min_z $max_z $patch_size $stride $scales $k0 $k $reps`
+    python -u ./N-planes-mesh.py $data_loader $basepath $midz $minz $patch_size $stride $scales $k0 $k $reps 1`
 jobid=`expr match "$bsub_stdout" "$jobid_regex"`
-invmap_dependency=done\($jobid\)
+invmap_dependency=${invmap_dependency}done\($jobid\)'&&'
 
-bsub_flags=(-Pcellmap -n4)  ### maybe n4, no ???
-logfile=$basepath/invmap.${params}.log
-bsub_stdout=`bsub ${bsub_flags[@]} -oo $logfile -w $invmap_dependency \
+# mesh, 2nd half forward order
+bsub_flags=(-Pcellmap -n2 -gpu "num=1" -q gpu_l4 -W 10080)
+logfile=$basepath/mesh2.${params}.log
+bsub_stdout=`bsub ${bsub_flags[@]} -oo $logfile -w ${mesh_dependency%&&} \
     conda run -n multi-sem --no-capture-output \
-    python -u ./N-planes-invmap.py $data_loader $basepath $min_z $max_z $patch_size $stride $scales $k0 $k $reps`
+    python -u ./N-planes-mesh.py $data_loader $basepath $midz $maxz $patch_size $stride $scales $k0 $k $reps 0`
+jobid=`expr match "$bsub_stdout" "$jobid_regex"`
+invmap_dependency=${invmap_dependency}done\($jobid\)'&&'
+
+# invmap
+bsub_flags=(-Pcellmap -n8 -W 10080)
+logfile=$basepath/invmap.${params}.log
+bsub_stdout=`bsub ${bsub_flags[@]} -oo $logfile -w ${invmap_dependency%&&} \
+    conda run -n multi-sem --no-capture-output \
+    python -u ./N-planes-invmap.py $data_loader $basepath $minz $maxz $patch_size $stride $scales $k0 $k $reps`
 jobid=`expr match "$bsub_stdout" "$jobid_regex"`
 warp_dependency=done\($jobid\)
 
-for z in $(seq $min_z $chunkz $((max_z-chunkz))); do
-    metadata=$((z==min_z))
+# warp
+multiscale_dependency=
+for z in $(seq $minz $chunkz $((maxz-chunkz))); do
+    metadata=$((z==minz))
 
     params=minz${z}.maxz$((z+chunkz-1)).patch${patch_size}.stride${stride}.scales${scales//,/}.k0${k0}.k${k}.reps${reps}
 
-    bsub_flags=(-Pcellmap -n8)
+    bsub_flags=(-Pcellmap -n16 -W 1440)
     logfile=$basepath/warp.${params}.log
     bsub_stdout=`bsub ${bsub_flags[@]} -oo $logfile -w $warp_dependency \
         conda run -n multi-sem --no-capture-output \
-        python -u ./N-planes-warp.py $data_loader $basepath $z $((z+chunkz)) $patch_size $stride $scales $k0 $k $reps $chunkxy $chunkz $metadata`
+        python -u ./N-planes-warp.py $data_loader $basepath $z $((z+chunkz-1)) $patch_size $stride $scales $k0 $k $reps $chunkxy $chunkz $metadata`
+    jobid=`expr match "$bsub_stdout" "$jobid_regex"`
+    multiscale_dependency=${multiscale_dependency}done\($jobid\)'&&'
 done
