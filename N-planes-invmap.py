@@ -65,6 +65,11 @@ parser.add_argument(
     type=int,
     help="how many times to iteratively compute the flow"
 )
+parser.add_argument(
+    "parallelism",
+    type=int,
+    help="how many processes/threads to use"
+)
 
 args = parser.parse_args()
 
@@ -78,6 +83,7 @@ scales_int = [int(x) for x in args.scales.split(',')]
 k0 = args.k0
 k = args.k
 reps = args.reps
+parallelism = args.parallelism
 
 print("data_loader =", data_loader)
 print("basepath =", basepath)
@@ -89,6 +95,7 @@ print("scales =", scales_int)
 print("k0 =", k0)
 print("k =", k)
 print("reps =", reps)
+print("parallelism =", parallelism)
 
 data = importlib.import_module(os.path.basename(data_loader))
 
@@ -102,7 +109,8 @@ s_min = min(scales_int)
 stride_min = stride * (2**s_min)
 
 print(datetime.now(), 'inverting map')
-invmap = map_utils.invert_map(mesh, boxMx, boxMx, stride_min)
+invmap = map_utils.invert_map(mesh, boxMx, boxMx, stride_min,
+                              parallelism=parallelism, verbose=True)
 
 print(datetime.now(), 'saving inverted map')
 data.save_invmap(invmap, min_z, max_z, basepath, params)
