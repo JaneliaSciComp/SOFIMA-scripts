@@ -62,7 +62,7 @@ jobid=`expr match "$bsub_stdout" "$jobid_regex"`
 invmap_dependency=${invmap_dependency}done\($jobid\)'&&'
 
 # invmap
-nprocs=8
+nprocs=12
 bsub_flags=(-Pcellmap -n$nprocs -W 10080)
 logfile=$basepath/invmap.${params}.log
 bsub_stdout=`bsub ${bsub_flags[@]} -oo $logfile -w ${invmap_dependency%&&} \
@@ -78,7 +78,7 @@ for z in $(seq $minz $chunkz $((maxz-chunkz))); do
 
     params=minz${z}.maxz$((z+chunkz-1)).patch${patch_size}.stride${stride}.scales${scales//,/}.k0${k0}.k${k}.reps${reps}
 
-    bsub_flags=(-Pcellmap -n16 -W 1440)
+    bsub_flags=(-Pcellmap -n24 -W 1440)
     logfile=$basepath/warp.${params}.log
     bsub_stdout=`bsub ${bsub_flags[@]} -oo $logfile -w $warp_dependency \
         conda run -n multi-sem --no-capture-output \
