@@ -31,6 +31,7 @@ for z in $(seq $minz $chunkz $((maxz-chunkz))); do
     # n1 for 10 planes, n4 for 100 planes
     bsub_flags=(-Pcellmap -n1 -gpu "num=1" -q gpu_l4 -W 1440)
     logfile=$basepath/flow.${params}.log
+    grep -lq Successfully $logfile && continue
     bsub_stdout=`bsub ${bsub_flags[@]} -oo $logfile \
         conda run -n multi-sem --no-capture-output \
         python -u ./N-planes-flow.py $data_loader $basepath $z $((z+chunkz)) $patch_size $stride $scales $k0 $k $reps $batch_size $metadata`
@@ -80,6 +81,7 @@ for z in $(seq $minz $chunkz $((maxz-chunkz))); do
 
     bsub_flags=(-Pcellmap -n24 -W 1440)
     logfile=$basepath/warp.${params}.log
+    grep -lq Successfully $logfile && continue
     bsub_stdout=`bsub ${bsub_flags[@]} -oo $logfile -w $warp_dependency \
         conda run -n multi-sem --no-capture-output \
         python -u ./N-planes-warp.py $data_loader $basepath $z $((z+chunkz-1)) $patch_size $stride $scales $k0 $k $reps $chunkxy $chunkz $metadata`
