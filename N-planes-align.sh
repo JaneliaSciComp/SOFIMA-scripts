@@ -23,10 +23,11 @@ jobid_regex='Job <\([0-9]*\)> '
 
 # flow
 mesh_dependency=
-for z in $(seq $minz $chunkz $((maxz-chunkz))); do
+for z in $(seq $minz $chunkz $maxz); do
     metadata=$((z==minz))
+    maxz2=$(( z+chunkz > maxz ? maxz : z+chunkz ))
 
-    params=minz${z}.maxz$((z+chunkz)).patch${patch_size}.stride${stride}.scales${scales//,/}.k0${k0}.k${k}.reps${reps}
+    params=minz${z}.maxz${maxz2}.patch${patch_size}.stride${stride}.scales${scales//,/}.k0${k0}.k${k}.reps${reps}
 
     # n1 for 10 planes, n4 for 100 planes
     bsub_flags=(-Pcellmap -n1 -gpu "num=1" -q gpu_l4 -W 1440)
@@ -34,7 +35,7 @@ for z in $(seq $minz $chunkz $((maxz-chunkz))); do
     grep -lq Successfully $logfile && continue
     bsub_stdout=`bsub ${bsub_flags[@]} -oo $logfile \
         conda run -n multi-sem --no-capture-output \
-        python -u ./N-planes-flow.py $data_loader $basepath $z $((z+chunkz)) $patch_size $stride $scales $k0 $k $reps $batch_size $metadata`
+        python -u ./N-planes-flow.py $data_loader $basepath $z $maxz2 $patch_size $stride $scales $k0 $k $reps $batch_size $metadata`
     jobid=`expr match "$bsub_stdout" "$jobid_regex"`
     mesh_dependency=${mesh_dependency}done\($jobid\)'&&'
 done
@@ -74,17 +75,18 @@ warp_dependency=done\($jobid\)
 
 # warp
 multiscale_dependency=
-for z in $(seq $minz $chunkz $((maxz-chunkz))); do
+for z in $(seq $minz $chunkz $maxz); do
     metadata=$((z==minz))
+    maxz2=$(( z+chunkz-1 > maxz ? maxz : z+chunkz-1 ))
 
-    params=minz${z}.maxz$((z+chunkz-1)).patch${patch_size}.stride${stride}.scales${scales//,/}.k0${k0}.k${k}.reps${reps}
+    params=minz${z}.maxz${maxz2}.patch${patch_size}.stride${stride}.scales${scales//,/}.k0${k0}.k${k}.reps${reps}
 
     bsub_flags=(-Pcellmap -n24 -W 1440)
     logfile=$basepath/warp.${params}.log
     grep -lq Successfully $logfile && continue
     bsub_stdout=`bsub ${bsub_flags[@]} -oo $logfile -w $warp_dependency \
         conda run -n multi-sem --no-capture-output \
-        python -u ./N-planes-warp.py $data_loader $basepath $z $((z+chunkz-1)) $patch_size $stride $scales $k0 $k $reps $chunkxy $chunkz $metadata`
+        python -u ./N-planes-warp.py $data_loader $basepath $z $maxz2 $patch_size $stride $scales $k0 $k $reps $chunkxy $chunkz $metadata`
     jobid=`expr match "$bsub_stdout" "$jobid_regex"`
     multiscale_dependency=${multiscale_dependency}done\($jobid\)'&&'
 done
