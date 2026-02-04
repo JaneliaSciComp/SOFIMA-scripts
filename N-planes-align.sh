@@ -2,8 +2,8 @@
 
 # launches dependent cluster jobs for each step needed to align a stack of N planes
 
-# usage: ./N-planes-align.sh <data-loader> <basepath> <min-z> <max-z> <patch-size> <stride> <scales> <k0> <k> <repeat> <batch-size> <chunkxy-size> <chunkz-size>
-# e.g. ./N-planes-align.sh "data-aphid-N-planes" /nrs/cellmap/arthurb/aphid/stitch.patch16.stride8.scale1.k00.01.k0.1.crop0-0.margin100 10770 10772 50 5 1,2 0.01 0.1 1 2048 1024 2
+# usage: ./N-planes-align.sh <data-loader> <basepath> <min-z> <max-z> <patch-size> <stride> <scales> <k0> <k> <repeat> <batch-size> <chunkxy-size> <chunkz-size> <num-slices-per-job>
+# e.g. ./N-planes-align.sh "data-aphid-N-planes" /nrs/cellmap/arthurb/aphid/stitch.patch16.stride8.scale1.k00.01.k0.1.crop0-0.margin100 10770 10772 50 5 1,2 0.01 0.1 1 2048 1024 2 4
 
 data_loader=$1
 basepath=$2
@@ -18,14 +18,15 @@ reps=${10}
 batch_size=${11}
 chunkxy=${12}
 chunkz=${13}
+nslices=${14}  # integer multiple of chunkz
 
 jobid_regex='Job <\([0-9]*\)> '
 
 # flow
 mesh_dependency=
-for z in $(seq $minz $chunkz $maxz); do
+for z in $(seq $minz $nslices $maxz); do
     metadata=$((z==minz))
-    maxz2=$(( z+chunkz > maxz ? maxz : z+chunkz ))
+    maxz2=$(( z+nslices > maxz ? maxz : z+nslices ))
 
     params=minz${z}.maxz${maxz2}.patch${patch_size}.stride${stride}.scales${scales//,/}.k0${k0}.k${k}.reps${reps}
 
@@ -75,18 +76,20 @@ warp_dependency=done\($jobid\)
 
 # warp
 multiscale_dependency=
-for z in $(seq $minz $chunkz $maxz); do
-    metadata=$((z==minz))
-    maxz2=$(( z+chunkz-1 > maxz ? maxz : z+chunkz-1 ))
+minz0=$(( minz / chunkz * chunkz ))
+for z in $(seq $minz0 $nslices $maxz); do
+    minz2=$(( z < minz ? minz : z ))
+    maxz2=$(( z+nslices-1 > maxz ? maxz : z+nslices-1 ))
+    metadata=$((minz2==minz))
 
-    params=minz${z}.maxz${maxz2}.patch${patch_size}.stride${stride}.scales${scales//,/}.k0${k0}.k${k}.reps${reps}
+    params=minz${minz2}.maxz${maxz2}.patch${patch_size}.stride${stride}.scales${scales//,/}.k0${k0}.k${k}.reps${reps}
 
     bsub_flags=(-Pcellmap -n24 -W 1440)
     logfile=$basepath/warp.${params}.log
     grep -lq Successfully $logfile && continue
     bsub_stdout=`bsub ${bsub_flags[@]} -oo $logfile -w $warp_dependency \
         conda run -n multi-sem --no-capture-output \
-        python -u ./N-planes-warp.py $data_loader $basepath $z $maxz2 $patch_size $stride $scales $k0 $k $reps $chunkxy $chunkz $metadata`
+        python -u ./N-planes-warp.py $data_loader $basepath $minz2 $maxz2 $patch_size $stride $scales $k0 $k $reps $chunkxy $chunkz $metadata`
     jobid=`expr match "$bsub_stdout" "$jobid_regex"`
     multiscale_dependency=${multiscale_dependency}done\($jobid\)'&&'
 done
