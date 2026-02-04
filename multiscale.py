@@ -31,6 +31,16 @@ parser.add_argument(
     type=int,
     help="numbers of scales (beyond s0)"
 )
+parser.add_argument(
+    "chunkxy",
+    type=int,
+    help="of the zarr output",
+)
+parser.add_argument(
+    "chunkz",
+    type=int,
+    help="of the zarr output",
+)
 
 args = parser.parse_args()
 
@@ -38,11 +48,15 @@ basepath = args.basepath
 inpath = args.inpath
 outpath = args.outpath
 nlevels = args.nlevels
+chunkxy = args.chunkxy
+chunkz = args.chunkz
 
 print("basepath =", basepath)
 print("inpath =", inpath)
 print("outpath =", outpath)
 print("nlevels =", nlevels)
+print("chunkxy =", chunkxy)
+print("chunkz =", chunkz)
 
 # --- CONFIGURATION FOR MEMORY SAFETY ---
 # Adjust these based on your machine's available RAM
@@ -91,7 +105,7 @@ def create_pyramid_v2_safe(
     scale_factors: tuple = (1, 2, 2),
     chunk_size: tuple = (64, 64, 64)
 ):
-    
+
     # 1. Define a Context to limit resources
     # This prevents the "bad_alloc" crash by forcing TensorStore to queue tasks
     # rather than running them all at once.
@@ -116,10 +130,10 @@ def create_pyramid_v2_safe(
 
     for level in range(1, num_levels + 1):
         target_path = f"{output_root}/s{level}"
-        
+
         print(f"--- Processing Level s{level} (Safe Mode) ---")
         print(f"   Target: {target_path}")
-        
+
         if os.path.exists(target_path):
             print(f"   Cleaning up existing directory...")
             shutil.rmtree(target_path)
@@ -152,7 +166,7 @@ def create_pyramid_v2_safe(
         # Create and Write
         print(f"   Opening target directory...")
         target_ts = ts.open(spec, create=True).result()
-        
+
         # This write will now obey the concurrency limits set in 'context_spec'
         print(f"   Writing target directory...")
         for z in range(0, downsampled_view.shape[0], chunk_size[0]):
@@ -162,7 +176,7 @@ def create_pyramid_v2_safe(
                 target_ts[zs,...].write(downsampled_view[zs,...]).result()
             else:
                 print('      z =', zs[0], ':', zs[-1], ' skipping')
-        
+
         current_source = target_ts
 
     write_ome_zarr_v2_metadata(output_root, num_levels, scale_factors)
@@ -173,5 +187,5 @@ create_pyramid_v2_safe(
     output_root=os.path.join(basepath,outpath),
     num_levels=nlevels,
     scale_factors=(2, 2, 2),
-    chunk_size=(10, 1024, 1024) # Your requested chunk size
+    chunk_size=(chunkz, chunkxy, chunkxy) # Your requested chunk size
 )
