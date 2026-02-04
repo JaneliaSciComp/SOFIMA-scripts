@@ -114,10 +114,7 @@ data = importlib.import_module(os.path.basename(data_loader))
 
 params = 'patch'+str(patch_size)+'.stride'+str(stride)+'.scales'+args.scales.replace(",",'')+'.k0'+str(k0)+'.k'+str(k)+'.reps'+str(reps)
 
-if z0 < z1:
-    flow = data.load_flow(basepath, params, z0, z1)
-else:
-    flow = -data.load_flow(basepath, params, z1, z0)
+flow = data.load_flow(basepath, params, z0, z0+1)
 
 config = mesh.IntegrationConfig(dt=0.001, gamma=0.0, k0=k0, k=k,
                                 stride=(stride, stride),
@@ -138,8 +135,11 @@ if write_metadata:
 print(datetime.now(), 'composing maps')
 for z in range(z0+1, z1+1) if z0 < z1 else range(z0-1, z1-1, -1):
   print(datetime.now(), 'z =', z)
-  zf = z-z0-1 if z0<z1 else z-z1
-  prev = map_utils.compose_maps_fast(flow[:, zf:zf+1, ...], origin, stride_min,
+  if z0 < z1:
+      flow = data.load_flow(basepath, params, z-1, z)
+  else:
+      flow = -data.load_flow(basepath, params, z, z+1)
+  prev = map_utils.compose_maps_fast(flow[:, 0:1, ...], origin, stride_min,
                                      solved, origin, stride_min)
   x = np.zeros_like(solved)
   x, e_kin, num_steps = mesh.relax_mesh(x, prev, config)
