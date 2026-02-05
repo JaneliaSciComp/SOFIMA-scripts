@@ -41,7 +41,7 @@ const max_z1 = 2
 
 include(args["data_loader"])
 
-const params = string("patch", args["patch_size"], ".stride", args["stride"], ".top", args["top"])
+const params = string("patch", args["patch_size"], ".stride", args["stride"], ".top", splitext(args["top"])[1])
 
 const invmap = -Float32.(load_invmap(args["basepath"], params))
 

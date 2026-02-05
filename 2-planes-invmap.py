@@ -73,7 +73,7 @@ print("parallelism =", parallelism)
 
 data = importlib.import_module(os.path.basename(data_loader))
 
-params = 'patch'+str(patch_size)+'.stride'+str(stride)+'.top'+top
+params = 'patch'+str(patch_size)+'.stride'+str(stride)+'.top'+os.path.splitext(top)[0]
 
 flow = data.load_flow(basepath, params)
 mesh = data.load_mesh(basepath, params)

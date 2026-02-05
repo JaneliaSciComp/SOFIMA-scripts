@@ -124,7 +124,7 @@ t0 = time.time()
 solved, e_kin, num_steps = mesh.relax_mesh(solved, flow_clean, config)
 print("relax_mesh took", time.time() - t0, "sec")
 
-params = 'patch'+str(patch_size)+'.stride'+str(stride)+'.top'+top
+params = 'patch'+str(patch_size)+'.stride'+str(stride)+'.top'+os.path.splitext(top)[0]
 
 data.save_flow(flow_clean, basepath, params)
 data.save_mesh(solved, basepath, params)
