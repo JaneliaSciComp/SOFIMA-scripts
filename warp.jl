@@ -70,7 +70,7 @@ function warp_slab(warped, ccurr, zs)
         end
     end
 
-    iz = findfirst(x->all(in.(zs,Ref(x[3]))), DiskArrays.eachchunk(warped)[:,1,1])
+    iz = findfirst(x->all(in.(zs,Ref(x[1]))), DiskArrays.eachchunk(warped)[:,1,1])
     chunks = DiskArrays.eachchunk(warped)[iz,:,:]
     p = Progress(prod(size(chunks)))
     Threads.@threads :greedy for i in 1:maximum(size(chunks))^2
