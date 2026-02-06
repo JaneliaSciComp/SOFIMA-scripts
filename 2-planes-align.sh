@@ -18,7 +18,7 @@ jobid_regex='Job <\([0-9]*\)> '
 
 # flow-mesh
 bsub_flags=(-Phess -n1 -gpu "num=1" -q gpu_l4 -W 1440)
-logfile=$basepath/flow-mesh-$params.log
+logfile=$basepath/flow-mesh.$params.log
 bsub_stdout=`bsub ${bsub_flags[@]} -oo $logfile \
     conda run -n multi-sem --no-capture-output \
     python -u ./2-planes-flow-mesh.py $data_loader $basepath $top $bot $patch_size $stride $reps $batch_size`
@@ -28,7 +28,7 @@ dependency=done\($jobid\)
 # invmap
 nprocs=2
 bsub_flags=(-Phess -n$nprocs -W 1440)
-logfile=$basepath/invmap-$params.log
+logfile=$basepath/invmap.$params.log
 bsub_stdout=`bsub ${bsub_flags[@]} -w "$dependency" -oo $logfile \
     conda run -n multi-sem --no-capture-output \
     python -u ./2-planes-invmap.py $data_loader $basepath $top $patch_size $stride $chunk $nprocs`
@@ -36,13 +36,13 @@ jobid=`expr match "$bsub_stdout" "$jobid_regex"`
 dependency=done\($jobid\)
 
 #bsub_flags=(-Phess -n8 -W 1440)
-#logfile=$basepath/warp-$params.log
+#logfile=$basepath/warp.$params.log
 #bsub_stdout=`bsub ${bsub_flags[@]} -w "$dependency" -oo $logfile \
 #    conda run -n multi-sem --no-capture-output \
 #    python -u ./2-planes-warp.py $data_loader $basepath $top $bot $patch_size $stride $chunk`
 
 # warp
 bsub_flags=(-Phess -n8 -W 1440)   # only needs -n1 for RAM but will use more CPU if given
-logfile=$basepath/warp-$params.log
+logfile=$basepath/warp.$params.log
 bsub_stdout=`bsub ${bsub_flags[@]} -w "$dependency" -oo $logfile \
     julia -t auto ./2-planes-warp.jl ${data_loader}.jl $basepath $top $bot $patch_size $stride $chunk`
