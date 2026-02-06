@@ -51,6 +51,11 @@ parser.add_argument(
     help="Distance of adjacent patches (in pixels, e.g., 8)"
 )
 parser.add_argument(
+    "reps",
+    type=int,
+    help="how many times to iteratively compute the flow"
+)
+parser.add_argument(
     "batch_size",
     type=int,
     help="Batch size for processing"
@@ -64,6 +69,7 @@ top = args.top
 bot = args.bot
 patch_size = args.patch_size
 stride = args.stride
+reps = args.reps
 batch_size = args.batch_size
 
 print("data_loader =", data_loader)
@@ -72,6 +78,7 @@ print("top =", top)
 print("bot =", bot)
 print("patch_size =", patch_size)
 print("stride =", stride)
+print("reps =", reps)
 print("batch_size =", batch_size)
 
 data = importlib.import_module(os.path.basename(data_loader))
@@ -86,6 +93,14 @@ t0 = time.time()
 flow = mfc.flow_field(ttop, tbot,
                       (patch_size, patch_size), (stride, stride),
                       batch_size=batch_size)
+print("sum of flows = ", np.nansum(np.abs(flow[np.isfinite(flow)])))
+for i in range(reps-1):
+    flow = mfc.flow_field(ttop, tbot,
+                          (patch_size, patch_size), (stride, stride),
+                          batch_size=batch_size,
+                          pre_targeting_field = flow[:2,::],
+                          pre_targeting_step = (stride, stride))
+    print("sum of flows = ", np.nansum(np.abs(flow[np.isfinite(flow)])))
 print("flow_field took", time.time() - t0, "sec")
 
 # the first two channels store the XY components of the flow vector, and the

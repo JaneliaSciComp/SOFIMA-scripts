@@ -160,8 +160,10 @@ def _compute_flow(scales, prev_flows=None):
 
 print(datetime.now(), 'computing flow')
 fNx = _compute_flow(scales_int)
+print("sum of flows = ", np.nansum(fNx))
 for _ in range(reps-1):
     fNx = _compute_flow(scales_int, fNx)
+    print("sum of flows = ", np.nansum(fNx))
 
 fN = {}
 for s in scales_int:
