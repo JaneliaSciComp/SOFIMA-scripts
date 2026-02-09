@@ -55,11 +55,11 @@ const stride = args["stride"]
 const sx = range(0, size(top,1)-1, step=stride)
 const sy = range(0, size(top,2)-1, step=stride)
 
-const warped = open_warp((2, size(top)...), 2, args["chunk"], args["basepath"], params)
+const warped = open_warp((size(top)...,2), args["chunk"], 2, args["basepath"], params)
 
 include("warp.jl")
 
-warped[1,:,:] = bot[:,:]
+warped[:,:,1] = bot[:,:]
 
-otop = OffsetArray(reshape(ctop, 1, size(ctop)...), 1, 0, 0)
+otop = OffsetArray(reshape(ctop, size(ctop)..., 1), 0, 0, 1)
 warp_slab(warped, otop, 2:2)
