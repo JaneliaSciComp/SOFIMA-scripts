@@ -70,6 +70,11 @@ parser.add_argument(
     type=int,
     help="how many processes/threads to use"
 )
+parser.add_argument(
+    "write_metadata",
+    type=int,
+    help="whether to write the zarr metadata for not"
+)
 
 args = parser.parse_args()
 
@@ -84,6 +89,7 @@ k0 = args.k0
 k = args.k
 reps = args.reps
 parallelism = args.parallelism
+write_metadata = args.write_metadata
 
 print("data_loader =", data_loader)
 print("basepath =", basepath)
@@ -96,6 +102,7 @@ print("k0 =", k0)
 print("k =", k)
 print("reps =", reps)
 print("parallelism =", parallelism)
+print("write_metadata =", write_metadata)
 
 data = importlib.import_module(os.path.basename(data_loader))
 
@@ -108,9 +115,12 @@ boxMx = bounding_box.BoundingBox(start=(0, 0, 0), size=(mesh.shape[-1], mesh.sha
 s_min = min(scales_int)
 stride_min = stride * (2**s_min)
 
+fid = data.create_invmap(mesh.shape, basepath, params, write_metadata)
+
 print(datetime.now(), 'inverting map')
 invmap = map_utils.invert_map(mesh, boxMx, boxMx, stride_min,
                               parallelism=parallelism, verbose=True)
 
 print(datetime.now(), 'saving inverted map')
-data.save_invmap(invmap, min_z, max_z, basepath, params)
+for z in range(min_z, max_z+1):
+    data.write_invmap_plane(fid, invmap[:, z-min_z : z-min_z+1, ...], z)

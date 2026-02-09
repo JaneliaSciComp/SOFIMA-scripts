@@ -70,9 +70,9 @@ def load_mesh(basepath, params, z0, z1):
         'driver': 'zarr',
         'kvstore': {"driver":"file", "path":os.path.join(basepath, 'mesh.'+params+'.zarr')},
         'open': True,
-        }).result()[:,z0+1:z1+1,...].read().result()
+        }).result()[:,z0:z1+1,...].read().result()
 
-def save_invmap(invmap, min_z, max_z, basepath, params):
+def create_invmap(shape, basepath, params, write_metadata):
     r = requests.get(f"{url}/zValues")
     nz = int(float(r.text[1:-1].split(',')[-1]))
     return ts.open({
@@ -80,8 +80,8 @@ def save_invmap(invmap, min_z, max_z, basepath, params):
         'kvstore': {"driver":"file", "path":os.path.join(basepath, 'invmap.'+params+'.zarr')},
         'metadata': {
             "compressor":{"id":"zstd","level":3},
-            "shape":[invmap.shape[0],nz,*invmap.shape[2:]],
-            "chunks":[invmap.shape[0],1,*invmap.shape[2:]],
+            "shape":[shape[0],nz,*shape[2:]],
+            "chunks":[shape[0],1,*shape[2:]],
             "fill_value":0,
             'dtype': '<f8',
             'dimension_separator': '/',
@@ -89,7 +89,11 @@ def save_invmap(invmap, min_z, max_z, basepath, params):
         'create': True,
         'open': True,
         'delete_existing': False,
-        }).result()[:,min_z+1:max_z+1,...].write(invmap).result()
+        'assume_metadata': write_metadata==0,
+        }).result()
+
+def write_invmap_plane(fid, plane, z):
+    return fid[:,z:z+1,...].write(plane).result()
 
 def load_invmap(basepath, params, z0, z1):
     return ts.open({
