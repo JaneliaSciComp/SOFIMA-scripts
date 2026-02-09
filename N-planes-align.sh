@@ -65,14 +65,22 @@ jobid=`expr match "$bsub_stdout" "$jobid_regex"`
 invmap_dependency=${invmap_dependency}done\($jobid\)'&&'
 
 # invmap
-nprocs=12
-bsub_flags=(-Pcellmap -n$nprocs -W 10080)
-logfile=$basepath/invmap.${params}.log
-bsub_stdout=`bsub ${bsub_flags[@]} -oo $logfile -w ${invmap_dependency%&&} \
-    conda run -n multi-sem --no-capture-output \
-    python -u ./N-planes-invmap.py $data_loader $basepath $minz $maxz $patch_size $stride $scales $k0 $k $reps $nprocs`
-jobid=`expr match "$bsub_stdout" "$jobid_regex"`
-warp_dependency=done\($jobid\)
+warp_dependency=
+for z in $(seq $minz $nslices $maxz); do
+    metadata=$((z==minz))
+    maxz2=$(( z+nslices > maxz ? maxz : z+nslices ))
+
+    params=minz${z}.maxz${maxz2}.patch${patch_size}.stride${stride}.scales${scales//,/}.k0${k0}.k${k}.reps${reps}
+
+    bsub_flags=(-Pcellmap -n$nslices -W 10080)
+    logfile=$basepath/invmap.${params}.log
+    grep -lq Successfully $logfile && continue
+    bsub_stdout=`bsub ${bsub_flags[@]} -oo $logfile -w ${invmap_dependency%&&} \
+        conda run -n multi-sem --no-capture-output \
+        python -u ./N-planes-invmap.py $data_loader $basepath $z $maxz2 $patch_size $stride $scales $k0 $k $reps $nslices $metadata`
+    jobid=`expr match "$bsub_stdout" "$jobid_regex"`
+    warp_dependency=${warp_dependency}done\($jobid\)'&&'
+done
 
 # warp
 multiscale_dependency=
