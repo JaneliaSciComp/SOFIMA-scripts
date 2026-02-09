@@ -43,18 +43,18 @@ function _lanczos4_opencv(::Type{F}, l4_2d_cs, δx) where {F}
 end
 
 function warp_chunk(chunk, warped, invmap_xextrema, invmap_yextrema, tform, ccurr, zs)
-    out = Array{eltype(warped)}(undef, length(zs), length(chunk[2]), length(chunk[3]))
+    out = Array{eltype(warped)}(undef, length(chunk[1]), length(chunk[2]), length(zs))
     for (iz,z) in enumerate(zs)
-        ax1 = (max(floor(Int,chunk[2][1]  +invmap_xextrema[iz][1]), 1) :
-               min( ceil(Int,chunk[2][end]+invmap_xextrema[iz][2]), size(ccurr,2)))
-        ax2 = (max(floor(Int,chunk[3][1]  +invmap_yextrema[iz][1]), 1) :
-               min( ceil(Int,chunk[3][end]+invmap_yextrema[iz][2]), size(ccurr,3)))
-        oacurr = OffsetArray(ccurr[z, ax1, ax2], ax1, ax2)
-        _out = warp(oacurr, tform[iz], (chunk[2],chunk[3]);  method=Lanczos4OpenCVFaithful())
-        out[iz,:,:] = round.(clamp.(OffsetArrays.no_offset_view(_out),
-                                    typemin(eltype(warped)), typemax(eltype(warped))))
+        ax1 = (max(floor(Int,chunk[1][1]  +invmap_xextrema[iz][1]), 1) :
+               min( ceil(Int,chunk[1][end]+invmap_xextrema[iz][2]), size(ccurr,1)))
+        ax2 = (max(floor(Int,chunk[2][1]  +invmap_yextrema[iz][1]), 1) :
+               min( ceil(Int,chunk[2][end]+invmap_yextrema[iz][2]), size(ccurr,2)))
+        oacurr = OffsetArray(ccurr[ax1, ax2, z], ax1, ax2)
+        _out = warp(oacurr, tform[iz], (chunk[1],chunk[2]);  method=Lanczos4OpenCVFaithful())
+        out[:,:,iz] = round.(clamp.(OffsetArrays.no_offset_view(_out),
+                                          typemin(eltype(warped)), typemax(eltype(warped))))
     end
-    warped[zs,chunk[2],chunk[3]] = out
+    warped[chunk[1],chunk[2],zs] = out
 end
 
 function warp_slab(warped, ccurr, zs)
@@ -70,8 +70,8 @@ function warp_slab(warped, ccurr, zs)
         end
     end
 
-    iz = findfirst(x->all(in.(zs,Ref(x[1]))), DiskArrays.eachchunk(warped)[:,1,1])
-    chunks = DiskArrays.eachchunk(warped)[iz,:,:]
+    iz = findfirst(x->all(in.(zs,Ref(x[3]))), DiskArrays.eachchunk(warped)[1,1,:])
+    chunks = DiskArrays.eachchunk(warped)[:,:,iz]
     p = Progress(prod(size(chunks)))
     Threads.@threads :greedy for i in 1:maximum(size(chunks))^2
         ix, iy = morton2cartesian(i)

@@ -6,10 +6,10 @@ load_mesh(basepath, params) = npzread(joinpath(basepath, string("flow.",params,"
 
 load_invmap(basepath, params) = zopen(joinpath(basepath, string("invmap.",params,".zarr")))
 
-open_warp(shape, chunkz, chunkxy, basepath, params) =
+open_warp(shape, chunkxy, chunkz, basepath, params) =
         zcreate(UInt8, shape...;
                 path=joinpath(basepath, string("warped.",params,".zarr")),
-                chunks=(chunkz,chunkxy,chunkxy),
+                chunks=(chunkxy,chunkxy,chunkz),
                 fill_value=0,
                 compressor=Zarr.ZstdCompressor(level=3),
                 dimension_separator='/')
