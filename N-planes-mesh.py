@@ -136,9 +136,9 @@ print(datetime.now(), 'composing maps')
 for z in range(z0+1, z1+1) if z0 < z1 else range(z0-1, z1-1, -1):
   print(datetime.now(), 'z =', z)
   if z0 < z1:
-      flow = data.load_flow(basepath, params, z-1, z)
+      flow = data.load_flow(basepath, params, z)
   else:
-      flow = -data.load_flow(basepath, params, z, z+1)
+      flow = -data.load_flow(basepath, params, z+1)
   prev = map_utils.compose_maps_fast(flow[:, 0:1, ...], origin, stride_min,
                                      solved, origin, stride_min)
   x = np.zeros_like(solved)
