@@ -35,12 +35,12 @@ def save_flow(flow, min_z, max_z, basepath, params, write_metadata):
         'assume_metadata': write_metadata==0,
         }).result()[:,min_z+1:max_z+1,...].write(flow).result()
 
-def load_flow(basepath, params, z0, z1):
+def load_flow(basepath, params, z):
     return ts.open({
         'driver': 'zarr',
         'kvstore': {"driver":"file", "path":os.path.join(basepath, 'flow.'+params+'.zarr')},
         'open': True,
-        }).result()[:,z0+1:z1+1,...].read().result()
+        }).result()[:,z:z+1,...].read().result()
 
 def create_mesh(shape, basepath, params, write_metadata):
     r = requests.get(f"{url}/zValues")
