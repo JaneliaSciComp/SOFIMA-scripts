@@ -1,8 +1,7 @@
 # bsub -Phess -n8 -Is /bin/zsh
 # julia -t auto ./2-planes-warp.jl data-hess-2-planes.jl /nrs/hess/data/hess_wafers_60_61/export/zarr_datasets/surface-align/run_20251219_110000/pass03-scale2/s3.patch160.stride8.jl flat-w61_serial_080_to_089-w61_s080_r00-top-face.zarr flat-w61_serial_070_to_079-w61_s079_r00-bot-face.zarr 160 8 1024
 
-using ArgParse, UnPack, StaticArrays, Interpolations, DiskArrays
-using Morton, ProgressMeter, Dates, ImageTransformations
+using ArgParse, UnPack, DiskArrays, OffsetArrays
 
 s = ArgParseSettings()
 @add_arg_table! s begin
@@ -43,7 +42,7 @@ include(args["data_loader"])
 
 const params = string("patch", args["patch_size"], ".stride", args["stride"], ".top", splitext(args["top"])[1])
 
-const invmap = -Float32.(load_invmap(args["basepath"], params))
+const invmap = OffsetArray(-Float32.(load_invmap(args["basepath"], params)), 0, 0, 1, 0);
 
 const top, bot = load_data(args["basepath"], args["top"], args["bot"])
 

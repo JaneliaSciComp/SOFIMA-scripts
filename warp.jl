@@ -1,5 +1,7 @@
 using Interpolations, ImageTransformations, StaticArrays, OffsetArrays, DiskArrays
+using ProgressMeter, Morton
 import Interpolations: degree, value_weights
+import OffsetArrays: IdOffsetRange
 
 """
     Lanczos4OpenCVFaithful()
@@ -42,6 +44,23 @@ function _lanczos4_opencv(::Type{F}, l4_2d_cs, δx) where {F}
     return normed_cs
 end
 
+parentindex(r::IdOffsetRange, i::Integer) = i - r.offset
+parentindex(r::IdOffsetRange, i::AbstractRange) = (first(i) - r.offset):(last(i) - r.offset)
+parentindex(r::IdOffsetRange, ::Colon) = Colon()
+
+@inline function Base.getindex(A::OffsetArray, I::Union{Colon, Int, AbstractRange}...)
+    @boundscheck checkbounds(A, I...)
+    J = map(parentindex, axes(A), I)
+    @inbounds parent(A)[J...]
+end
+
+@inline function Base.setindex!(A::OffsetArray, val, I::Union{Colon, Int, AbstractRange}...)
+    @boundscheck checkbounds(A, I...)
+    J = map(parentindex, axes(A), I)
+    @inbounds parent(A)[J...] = val
+    A
+end
+
 function warp_chunk(chunk, warped, invmap_xextrema, invmap_yextrema, tform, ccurr, zs)
     out = Array{eltype(warped)}(undef, length(chunk[1]), length(chunk[2]), length(zs))
     for (iz,z) in enumerate(zs)
@@ -58,11 +77,11 @@ function warp_chunk(chunk, warped, invmap_xextrema, invmap_yextrema, tform, ccur
 end
 
 function warp_slab(warped, ccurr, zs)
-    invmap_xextrema = [extrema(filter(!isnan, invmap[:,:,z-min_z1+1,1])) for z in zs]
-    invmap_yextrema = [extrema(filter(!isnan, invmap[:,:,z-min_z1+1,2])) for z in zs]
+    invmap_xextrema = [extrema(filter(!isnan, invmap[:,:,z,1])) for z in zs]
+    invmap_yextrema = [extrema(filter(!isnan, invmap[:,:,z,2])) for z in zs]
     tform = map(zs) do z
-        itpx = extrapolate(scale(interpolate(invmap[:,:,z-min_z1+1,1], BSpline(Linear())), sx, sy), NaN32)
-        itpy = extrapolate(scale(interpolate(invmap[:,:,z-min_z1+1,2], BSpline(Linear())), sx, sy), NaN32)
+        itpx = extrapolate(scale(interpolate(invmap[:,:,z,1], BSpline(Linear())), sx, sy), NaN32)
+        itpy = extrapolate(scale(interpolate(invmap[:,:,z,2], BSpline(Linear())), sx, sy), NaN32)
         function tform(p::SVector{2})
             x::Float32 = itpx(p[1], p[2])
             y::Float32 = itpy(p[1], p[2])

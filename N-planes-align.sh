@@ -83,6 +83,11 @@ for z in $(seq $minz $nslices $maxz); do
 done
 
 # warp
+julia -e "include(\"${data_loader}.jl\"); \
+          curr = load_data(\"$basepath\", 0); \
+          params = string(\"patch\", \"$patch_size\", \".stride\", \"$stride\", \".scales\", replace(\"$scales\", \",\"=>\"\"), \".k0\", \"$k0\", \".k\", \"$k\", \".reps\", \"$reps\"); \
+          create_warp(size(curr), $chunkxy, $chunkz, \"$basepath\", params)"
+
 multiscale_dependency=
 minz0=$(( minz / chunkz * chunkz ))
 for z in $(seq $minz0 $nslices $maxz); do
@@ -92,12 +97,11 @@ for z in $(seq $minz0 $nslices $maxz); do
 
     params=minz${minz2}.maxz${maxz2}.patch${patch_size}.stride${stride}.scales${scales//,/}.k0${k0}.k${k}.reps${reps}
 
-    bsub_flags=(-Pcellmap -n24 -W 1440)
+    bsub_flags=(-Pcellmap -n8 -W 1440)
     logfile=$basepath/warp.${params}.log
     grep -lq Successfully $logfile && continue
-    bsub_stdout=`bsub ${bsub_flags[@]} -oo $logfile -w $warp_dependency \
-        conda run -n multi-sem --no-capture-output \
-        python -u ./N-planes-warp.py $data_loader $basepath $minz2 $maxz2 $patch_size $stride $scales $k0 $k $reps $chunkxy $chunkz $metadata`
+    bsub_stdout=`bsub ${bsub_flags[@]} -oo $logfile -w "$warp_dependency" \
+        julia -t auto ./N-planes-warp.jl ${data_loader}.jl $basepath $minz2 $maxz2 $patch_size $stride $scales $k0 $k $reps $chunkxy $chunkz`
     jobid=`expr match "$bsub_stdout" "$jobid_regex"`
     multiscale_dependency=${multiscale_dependency}done\($jobid\)'&&'
 done
