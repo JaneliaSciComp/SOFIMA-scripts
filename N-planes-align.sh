@@ -31,7 +31,7 @@ for z in $(seq $minz $nslices $maxz); do
     params=minz${z}.maxz${maxz2}.patch${patch_size}.stride${stride}.scales${scales//,/}.k0${k0}.k${k}.reps${reps}
 
     # n1 for 10 planes, n4 for 100 planes
-    bsub_flags=(-Pcellmap -n1 -gpu "num=1" -q gpu_l4 -W 1440)
+    bsub_flags=(-Pcellmap -n2 -gpu "num=1" -q gpu_l4 -W 1440)
     logfile=$basepath/flow.${params}.log
     grep -lq Successfully $logfile && continue
     bsub_stdout=`bsub ${bsub_flags[@]} -oo $logfile \
@@ -47,7 +47,7 @@ midz=$(( (maxz - minz) / 2 + minz ))
 
 # mesh, 1st half reverse order
 invmap_dependency=
-bsub_flags=(-Pcellmap -n2 -gpu "num=1" -q gpu_l4 -W 10080)
+bsub_flags=(-Pcellmap -n1 -gpu "num=1" -q gpu_l4 -W 10080)
 logfile=$basepath/mesh1.${params}.log
 bsub_stdout=`bsub ${bsub_flags[@]} -oo $logfile -w ${mesh_dependency%&&} \
     conda run -n multi-sem --no-capture-output \
@@ -56,7 +56,7 @@ jobid=`expr match "$bsub_stdout" "$jobid_regex"`
 invmap_dependency=${invmap_dependency}done\($jobid\)'&&'
 
 # mesh, 2nd half forward order
-bsub_flags=(-Pcellmap -n2 -gpu "num=1" -q gpu_l4 -W 10080)
+bsub_flags=(-Pcellmap -n1 -gpu "num=1" -q gpu_l4 -W 10080)
 logfile=$basepath/mesh2.${params}.log
 bsub_stdout=`bsub ${bsub_flags[@]} -oo $logfile -w ${mesh_dependency%&&} \
     conda run -n multi-sem --no-capture-output \
@@ -108,7 +108,7 @@ done
 
 # multiscale
 params=patch${patch_size}.stride${stride}.scales${scales//,/}.k0${k0}.k${k}.reps${reps}
-bsub_flags=(-Pcellmap -n8 -W 1440)
+bsub_flags=(-Pcellmap -n16 -W 1440)
 logfile=$basepath/multiscale.${params}.log
 bsub_stdout=`bsub ${bsub_flags[@]} -oo $logfile -w ${multiscale_dependency%&&} \
     conda run -n multi-sem --no-capture-output \

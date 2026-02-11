@@ -61,8 +61,8 @@ print("chunkz =", chunkz)
 
 # --- CONFIGURATION FOR MEMORY SAFETY ---
 # Adjust these based on your machine's available RAM
-MEMORY_LIMIT_BYTES = 32_000_000_000  # 4 GB limit
-CONCURRENCY_LIMIT = 4               # Only process 4 chunks at a time
+MEMORY_LIMIT_BYTES = 32_000_000_000  # bytes
+CONCURRENCY_LIMIT = 16               # processes
 
 def write_ome_zarr_v2_metadata(output_root, num_levels, scale_factors, axes=('z', 'y', 'x')):
     datasets = []
