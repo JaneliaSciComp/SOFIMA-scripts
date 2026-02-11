@@ -9,6 +9,7 @@ import numpy as np
 import json
 import os
 import shutil
+from datetime import datetime 
 
 # Parse command line arguments
 parser = argparse.ArgumentParser(
@@ -132,10 +133,10 @@ def create_pyramid_v2_safe(
         target_path = f"{output_root}/s{level}"
 
         print(f"--- Processing Level s{level} (Safe Mode) ---")
-        print(f"   Target: {target_path}")
+        print(f"Target: {target_path}")
 
         if os.path.exists(target_path):
-            print(f"   Cleaning up existing directory...")
+            print("Cleaning up existing directory...")
             shutil.rmtree(target_path)
 
         # Downsample View
@@ -164,18 +165,18 @@ def create_pyramid_v2_safe(
         }
 
         # Create and Write
-        print(f"   Opening target directory...")
+        print("Opening target directory...")
         target_ts = ts.open(spec, create=True).result()
 
         # This write will now obey the concurrency limits set in 'context_spec'
-        print(f"   Writing target directory...")
+        print("Writing target directory...")
         for z in range(0, downsampled_view.shape[0], chunk_size[0]):
             zs = range(z, min(downsampled_view.shape[0], z+chunk_size[0]))
             if not downsampled_view[zs,...].storage_statistics(query_not_stored=True).result().not_stored:
-                print('      z =', zs[0], ':', zs[-1], ' saving')
+                print(datetime.now(), 'z =', zs[0], ':', zs[-1], ' saving')
                 target_ts[zs,...].write(downsampled_view[zs,...]).result()
             else:
-                print('      z =', zs[0], ':', zs[-1], ' skipping')
+                print(datetime.now(), 'z =', zs[0], ':', zs[-1], ' skipping')
 
         current_source = target_ts
 
