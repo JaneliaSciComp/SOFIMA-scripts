@@ -42,23 +42,23 @@ include(args["data_loader"])
 
 const params = string("patch", args["patch_size"], ".stride", args["stride"], ".top", splitext(args["top"])[1])
 
-const invmap = OffsetArray(-Float32.(load_invmap(args["basepath"], params)), 0, 0, 1, 0);
+const invmap = OffsetArray(Float32.(load_invmap(args["basepath"], params)), 0, 0, 1, 0);
 
 const top, bot = load_data(args["basepath"], args["top"], args["bot"])
 
-const acs = DiskArrays.approx_chunksize(DiskArrays.eachchunk(top))
-const ctop = DiskArrays.cache(top, maxsize=9*acs[1]*acs[2]*sizeof(eltype(top)))
+const acs = DiskArrays.approx_chunksize(DiskArrays.eachchunk(bot))
+const cbot = DiskArrays.cache(bot, maxsize=9*acs[1]*acs[2]*sizeof(eltype(bot)))
 
 const stride = args["stride"]
 
-const sx = range(0, size(top,1)-1, step=stride)
-const sy = range(0, size(top,2)-1, step=stride)
+const sx = range(0, size(bot,1)-1, step=stride)
+const sy = range(0, size(bot,2)-1, step=stride)
 
-const warped = open_warp((size(top)...,2), args["chunk"], 2, args["basepath"], params)
+const warped = open_warp((size(bot)...,2), args["chunk"], 2, args["basepath"], params)
 
 include("warp.jl")
 
-warped[:,:,1] = bot[:,:]
+warped[:,:,1] = top[:,:]
 
-otop = OffsetArray(reshape(ctop, size(ctop)..., 1), 0, 0, 1)
+otop = OffsetArray(reshape(cbot, size(cbot)..., 1), 0, 0, 1)
 warp_slab(warped, otop, 2:2)
