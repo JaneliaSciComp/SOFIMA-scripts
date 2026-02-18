@@ -136,8 +136,8 @@ def create_pyramid_v2_safe(
         print(f"Target: {target_path}")
 
         if os.path.exists(target_path):
-            print("Cleaning up existing directory...")
-            shutil.rmtree(target_path)
+            print("output directory already exists.  exiting")
+            exit()
 
         # Downsample View
         downsampled_view = ts.downsample(current_source, scale_factors, method='mean')
