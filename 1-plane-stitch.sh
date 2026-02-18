@@ -20,5 +20,5 @@ bsub_flags=(-Pcellmap -n1 -gpu "num=1" -q gpu_l4 -W 1440)
 
 logfile=$outpath/logs/stitched.%I.s$scale.log
 cmd="conda run -n multi-sem --no-capture-output \
-     python -u ./1-plane-stitch.py "data-aphid-1-plane" \$LSB_JOBINDEX $scale $patch_size $stride $k0 $k $margins $outpath \$(( LSB_JOBINDEX == MIN_Z )) $chunk_size"
+     python -u ./1-plane-stitch.py "data-aphid-1-plane" \$LSB_JOBINDEX $scale $patch_size $stride $k0 $k $margins $outpath \$(( \$LSB_JOBINDEX == $MIN_Z )) $chunk_size"
 echo "$cmd" | bsub ${bsub_flags[@]} -J "1-plane-stitch[$MIN_Z-$MAX_Z]" -oo $logfile
