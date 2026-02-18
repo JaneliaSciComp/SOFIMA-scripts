@@ -14,6 +14,7 @@ import jax
 import jax.numpy as jnp
 import matplotlib.pyplot as plt
 import numpy as np
+from datetime import datetime
 
 import importlib
 
@@ -103,15 +104,18 @@ print("chunk_size =", chunk_size)
 
 data = importlib.import_module(os.path.basename(data_loader))
 
+print(datetime.now(), 'loading data')
 planepath = data.get_tilepath(z)
 tile_map = data.load_data(planepath, scale_int)
 
+print(datetime.now(), 'compute coarse offsets')
 from sofima import stitch_rigid
 cx, cy = stitch_rigid.compute_coarse_offsets(data.tile_space, tile_map,
             overlaps_xy=(tuple(x//2**scale_int for x in (100, 200, 400, 800)),
                          tuple(x//2**scale_int for x in (100, 200, 400, 800))),
             min_overlap=patch_size)
 
+print(datetime.now(), 'optimize coarse mesh')
 coarse_mesh = stitch_rigid.optimize_coarse_mesh(cx, cy)
 
 if debug:
@@ -123,6 +127,7 @@ if debug:
     np.save(os.path.join(outpath, "coarse-mesh.npy"), coarse_mesh)
     
 
+print(datetime.now(), 'compute flow map')
 from sofima import stitch_elastic
 
 # The stride (in pixels) specifies the resolution at which to compute the flow
@@ -136,6 +141,7 @@ fine_x, offsets_x = stitch_elastic.compute_flow_map(tile_map, cx, 0,
 fine_y, offsets_y = stitch_elastic.compute_flow_map(tile_map, cy, 1,
         stride=(stride, stride), patch_size=(patch_size, patch_size), batch_size=4)  # (x,y) -> (x,y+1)
 
+print(datetime.now(), 'clean flow')
 from sofima import flow_utils
 
 kwargs = {"min_peak_ratio": 1.4, "min_peak_sharpness": 1.4,
@@ -151,6 +157,7 @@ fine_x3 = {k: flow_utils.reconcile_flows([v[:, np.newaxis, ...]], **kwargs)[:, 0
 fine_y3 = {k: flow_utils.reconcile_flows([v[:, np.newaxis, ...]], **kwargs)[:, 0, :, :]
           for k, v in fine_y2.items()}
 
+print(datetime.now(), 'aggregate arrays')
 from sofima import mesh
 
 data_x = (cx, fine_x3, offsets_x)
@@ -167,6 +174,7 @@ if debug:
     np.save(os.path.join(outpath, "flow_idx2key.npy"),
             [idx_to_key[i] for i in range(len(idx_to_key))])
 
+print(datetime.now(), 'relax mesh')
 @jax.jit
 def prev_fn(x):
   target_fn = ft.partial(stitch_elastic.compute_target_mesh, x=x, fx=fx,
@@ -195,15 +203,19 @@ from sofima import warp
 idx_to_key = {v: k for k, v in key_to_idx.items()}
 meshes = {idx_to_key[i]: np.array(x[:, i:i+1 :, :]) * 2**scale_int for i in range(x.shape[1])}
 
+print(datetime.now(), 'loading data s0')
 tile_map0 = data.load_data(planepath, 0)
 
 # Warp the tiles into a single image.
+print(datetime.now(), 'render tiles')
 margin_overrides = {k:margins for k in tile_map0.keys()}
 stitched, _ = warp.render_tiles(tile_map0, meshes, margin_overrides=margin_overrides,
          stride=(stride * 2**scale_int, stride * 2**scale_int))
 
+print(datetime.now(), 'save plane')
 data.save_plane(outpath, z, stitched, write_metadata, chunk_size)
 
+print(datetime.now(), 'finished!')
 
 if debug:
     stitched = {}
