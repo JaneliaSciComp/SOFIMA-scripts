@@ -18,7 +18,7 @@ s = ArgParseSettings()
         help = "filename of bottom of an adjacent slab"
         required = true
     "patch_size"
-        arg_type=Int
+        arg_type=String
         help="Side length of (square) patch for processing (in pixels, e.g., 32)"
     "stride"
         arg_type=Int

@@ -38,7 +38,7 @@ parser.add_argument(
 )
 parser.add_argument(
     "patch_size",
-    type=int,
+    type=str,
     help="Side length of (square) patch for processing (in pixels, e.g., 32)",
 )
 parser.add_argument(
@@ -59,11 +59,6 @@ parser.add_argument(
     "k",
     type=float,
     help="spring constant for intra-section springs"
-)
-parser.add_argument(
-    "reps",
-    type=int,
-    help="how many times to iteratively compute the flow"
 )
 parser.add_argument(
     "parallelism",
@@ -87,7 +82,6 @@ stride = args.stride
 scales_int = [int(x) for x in args.scales.split(',')]
 k0 = args.k0
 k = args.k
-reps = args.reps
 parallelism = args.parallelism
 write_metadata = args.write_metadata
 
@@ -100,13 +94,12 @@ print("stride =", stride)
 print("scales =", scales_int)
 print("k0 =", k0)
 print("k =", k)
-print("reps =", reps)
 print("parallelism =", parallelism)
 print("write_metadata =", write_metadata)
 
 data = importlib.import_module(os.path.basename(data_loader))
 
-params = 'patch'+str(patch_size)+'.stride'+str(stride)+'.scales'+args.scales.replace(",",'')+'.k0'+str(k0)+'.k'+str(k)+'.reps'+str(reps)
+params = 'patch'+patch_size+'.stride'+str(stride)+'.scales'+args.scales.replace(",",'')+'.k0'+str(k0)+'.k'+str(k)
 
 mesh = data.load_mesh(basepath, params, min_z, max_z)
 

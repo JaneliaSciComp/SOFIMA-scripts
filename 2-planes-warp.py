@@ -40,7 +40,7 @@ parser.add_argument(
 )
 parser.add_argument(
     "patch_size",
-    type=int,
+    type=str,
     help="Side length of (square) patch for processing (in pixels, e.g., 32)",
 )
 parser.add_argument(
@@ -74,7 +74,7 @@ print("chunk =", chunk)
 
 data = importlib.import_module(os.path.basename(data_loader))
 
-params = 'patch'+str(patch_size)+'.stride'+str(stride)+'.top'+os.path.splitext(top)[0]
+params = 'patch'+patch_size+'.stride'+str(stride)+'.top'+os.path.splitext(top)[0]
 
 invmap = data.load_invmap(basepath, params)
 
