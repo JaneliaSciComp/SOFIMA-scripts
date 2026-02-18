@@ -35,14 +35,22 @@ bsub_stdout=`bsub ${bsub_flags[@]} -w "$dependency" -oo $logfile \
 jobid=`expr match "$bsub_stdout" "$jobid_regex"`
 dependency=done\($jobid\)
 
-#bsub_flags=(-Phess -n8 -W 1440)
-#logfile=$basepath/warp.$params.log
-#bsub_stdout=`bsub ${bsub_flags[@]} -w "$dependency" -oo $logfile \
-#    conda run -n multi-sem --no-capture-output \
-#    python -u ./2-planes-warp.py $data_loader $basepath $top $bot $patch_size $stride $chunk`
-
 # warp
 bsub_flags=(-Phess -n8 -W 1440)   # only needs -n1 for RAM but will use more CPU if given
 logfile=$basepath/warp.$params.log
 bsub_stdout=`bsub ${bsub_flags[@]} -w "$dependency" -oo $logfile \
     julia -t auto ./2-planes-warp.jl ${data_loader}.jl $basepath $top $bot $patch_size $stride $chunk`
+jobid=`expr match "$bsub_stdout" "$jobid_regex"`
+dependency=done\($jobid\)
+
+# multiscale
+bsub_flags=(-Phess -n16 -W 1440)
+logfile=$basepath/multiscale.${params}.log
+bsub_stdout=`bsub ${bsub_flags[@]} -oo $logfile -w ${dependency} \
+    conda run -n multi-sem --no-capture-output \
+    python -u ./multiscale.py $basepath warped.$params.zarr multiscale.$params.zarr 4 $chunk 1`
+jobid=`expr match "$bsub_stdout" "$jobid_regex"`
+mv_dependency=\($jobid\)
+logfile=$basepath/cp.${params}.log
+bsub_stdout=`bsub ${bsub_flags[@]} -oo $logfile -w $mv_dependency \
+    mv $basepath/warped.$params.zarr $basepath/multiscale.$params.zarr/s0`
