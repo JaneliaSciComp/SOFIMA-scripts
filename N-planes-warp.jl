@@ -15,7 +15,7 @@ s = ArgParseSettings()
         arg_type=Int
         help="upper bound on the planes to align"
     "patch_size"
-        arg_type=Int
+        arg_type=String
         help="Side length of (square) patch for processing (in pixels, e.g., 32)"
     "stride"
         arg_type=Int
@@ -28,9 +28,6 @@ s = ArgParseSettings()
     "k"
         arg_type=Float64
         help="spring constant for intra-section springs"
-    "reps"
-        arg_type=Int
-        help="how many times to iteratively compute the flow"
     "chunkxy"
         arg_type=Int
         help="of the zarr output"
@@ -51,7 +48,7 @@ const max_z1 = max_z + 1
 
 include(args["data_loader"])
 
-const params = string("patch", args["patch_size"], ".stride", args["stride"], ".scales", replace(args["scales"], ","=>""), ".k0", args["k0"], ".k", args["k"], ".reps", args["reps"])
+const params = string("patch", args["patch_size"], ".stride", args["stride"], ".scales", replace(args["scales"], ","=>""), ".k0", args["k0"], ".k", args["k"])
 
 const invmap = Float32.(load_invmap(args["basepath"], params))
 

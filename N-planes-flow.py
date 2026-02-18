@@ -54,7 +54,7 @@ parser.add_argument(
 )
 parser.add_argument(
     "patch_size",
-    type=int,
+    type=str,
     help="Side length of (square) patch for processing (in pixels, e.g., 32)",
 )
 parser.add_argument(
@@ -77,11 +77,6 @@ parser.add_argument(
     help="spring constant for intra-section springs"
 )
 parser.add_argument(
-    "reps",
-    type=int,
-    help="how many times to iteratively compute the flow"
-)
-parser.add_argument(
     "batch_size",
     type=int,
     help="how many patches to process simultaneously",
@@ -100,10 +95,9 @@ min_z = args.min_z
 max_z = args.max_z
 patch_size = args.patch_size
 stride = args.stride
-scales_int = [int(x) for x in args.scales.split(',')]
+scales = args.scales
 k0 = args.k0
 k = args.k
-reps = args.reps
 batch_size = args.batch_size
 write_metadata = args.write_metadata
 
@@ -113,16 +107,18 @@ print("min_z =", min_z)
 print("max_z =", max_z)
 print("patch_size =", patch_size)
 print("stride =", stride)
-print("scales =", scales_int)
+print("scales =", scales)
 print("k0 =", k0)
 print("k =", k)
-print("reps =", reps)
 print("batch_size =", batch_size)
 print("write_metadata =", write_metadata)
 
+patch_size_int = [int(x) for x in args.patch_size.split(',')]
+scales_int = [int(x) for x in scales.split(',')]
+
 data = importlib.import_module(os.path.basename(data_loader))
 
-def _compute_flow(scales, prev_flows=None):
+def _compute_flow(scales, patch_size, prev_flows=None):
   mfc = flow_field.JAXMaskedXCorrWithStatsCalculator()
   flows = {s:[] for s in scales}
   _prev = data.load_data(basepath, min_z, 0)
@@ -159,11 +155,11 @@ def _compute_flow(scales, prev_flows=None):
   return flows
 
 print(datetime.now(), 'computing flow')
-fNx = _compute_flow(scales_int)
-print("sum of flows = ", np.nansum(fNx))
-for _ in range(reps-1):
-    fNx = _compute_flow(scales_int, fNx)
-    print("sum of flows = ", np.nansum(fNx))
+fNx = _compute_flow(scales_int, patch_size_int[0])
+print("sum of flows = ", sum([np.nansum(x) for x in fNx.values()]))
+for i in range(1, len(patch_size_int)):
+    fNx = _compute_flow(scales_int, patch_size_int[i], fNx)
+    print("sum of flows = ", sum([np.nansum(x) for x in fNx.values()]))
 
 fN = {}
 for s in scales_int:
@@ -171,7 +167,7 @@ for s in scales_int:
     flows = np.transpose(np.array(fNx[s]), [1, 0, 2, 3])
 
     # Pad to account for the edges of the images where there is insufficient context to estimate flow.
-    pad = patch_size // 2 // stride
+    pad = patch_size_int[-1] // 2 // stride
     flows = np.pad(flows, [[0, 0], [0, 0], [pad, pad], [pad, pad]], constant_values=np.nan)
 
     fN[s] = flow_utils.clean_flow(flows, min_peak_ratio=1.6, min_peak_sharpness=1.6,
@@ -274,7 +270,7 @@ plt.tight_layout()
 plt.savefig("flows-f2-f2hi-d.tif", dpi=300)
 '''
 
-params = 'patch'+str(patch_size)+'.stride'+str(stride)+'.scales'+args.scales.replace(",",'')+'.k0'+str(k0)+'.k'+str(k)+'.reps'+str(reps)
+params = 'patch'+patch_size+'.stride'+str(stride)+'.scales'+args.scales.replace(",",'')+'.k0'+str(k0)+'.k'+str(k)
 
 data.save_flow(final_flow, min_z, max_z, basepath, params, write_metadata)
 

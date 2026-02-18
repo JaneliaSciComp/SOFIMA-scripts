@@ -42,18 +42,13 @@ parser.add_argument(
 )
 parser.add_argument(
     "patch_size",
-    type=int,
+    type=str,
     help="Side length of (square) patch for processing (in pixels, e.g., 32)",
 )
 parser.add_argument(
     "stride",
     type=int,
     help="Distance of adjacent patches (in pixels, e.g., 8)"
-)
-parser.add_argument(
-    "reps",
-    type=int,
-    help="how many times to iteratively compute the flow"
 )
 parser.add_argument(
     "batch_size",
@@ -69,7 +64,6 @@ top = args.top
 bot = args.bot
 patch_size = args.patch_size
 stride = args.stride
-reps = args.reps
 batch_size = args.batch_size
 
 print("data_loader =", data_loader)
@@ -78,8 +72,9 @@ print("top =", top)
 print("bot =", bot)
 print("patch_size =", patch_size)
 print("stride =", stride)
-print("reps =", reps)
 print("batch_size =", batch_size)
+
+patch_size_int = [int(x) for x in args.patch_size.split(',')]
 
 data = importlib.import_module(os.path.basename(data_loader))
 
@@ -91,17 +86,19 @@ ttop, tbot = data.load_data(basepath, top, bot)
 mfc = flow_field.JAXMaskedXCorrWithStatsCalculator()
 t0 = time.time()
 flow = mfc.flow_field(ttop, tbot,
-                      (patch_size, patch_size), (stride, stride),
+                      (patch_size_int[0], patch_size_int[0]), (stride, stride),
                       batch_size=batch_size)
-print("sum of flows = ", np.nansum(np.abs(flow[np.isfinite(flow)])))
-for i in range(reps-1):
+print("mean of flows = ", np.nanmean(np.abs(flow[np.isfinite(flow)])))
+print("flow_field took", time.time() - t0, "sec")
+for i in range(1,len(patch_size_int)):
+    t0 = time.time()
     flow = mfc.flow_field(ttop, tbot,
-                          (patch_size, patch_size), (stride, stride),
+                          (patch_size_int[i], patch_size_int[i]), (stride, stride),
                           batch_size=batch_size,
                           pre_targeting_field = flow[:2,::],
                           pre_targeting_step = (stride, stride))
-    print("sum of flows = ", np.nansum(np.abs(flow[np.isfinite(flow)])))
-print("flow_field took", time.time() - t0, "sec")
+    print("mean of flows = ", np.nanmean(np.abs(flow[np.isfinite(flow)])))
+    print("flow_field took", time.time() - t0, "sec")
 
 # the first two channels store the XY components of the flow vector, and the
 # two remaining channels are measures of estimation quality (see
@@ -114,7 +111,7 @@ flow = np.transpose(flow, [1, 0, 2, 3])
 
 # Pad to account for the edges of the images where there is insufficient
 # context to estimate flow.
-pad = patch_size // 2 // stride
+pad = patch_size_int[-1] // 2 // stride
 flow = np.pad(flow, [[0, 0], [0, 0], [pad, pad], [pad, pad]], constant_values=np.nan)
 
 # remove uncertain flow estimates by replacing them with NaNs
@@ -139,7 +136,7 @@ t0 = time.time()
 solved, e_kin, num_steps = mesh.relax_mesh(solved, flow_clean, config)
 print("relax_mesh took", time.time() - t0, "sec")
 
-params = 'patch'+str(patch_size)+'.stride'+str(stride)+'.top'+os.path.splitext(top)[0]
+params = 'patch'+patch_size+'.stride'+str(stride)+'.top'+os.path.splitext(top)[0]
 
 data.save_flow(flow_clean, basepath, params)
 data.save_mesh(solved, basepath, params)
