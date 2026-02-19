@@ -114,6 +114,9 @@ cx, cy = stitch_rigid.compute_coarse_offsets(data.tile_space, tile_map,
             overlaps_xy=(tuple(x//2**scale_int for x in (100, 200, 400, 800)),
                          tuple(x//2**scale_int for x in (100, 200, 400, 800))),
             min_overlap=patch_size)
+if np.any(np.isinf(cx)) or np.any(np.isinf(cy)):
+    print("ERROR: some coarse offsets are infinite! exiting")
+    exit()
 
 print(datetime.now(), 'optimize coarse mesh')
 coarse_mesh = stitch_rigid.optimize_coarse_mesh(cx, cy)
