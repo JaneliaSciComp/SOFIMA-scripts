@@ -70,6 +70,11 @@ parser.add_argument(
     type=int,
     help="whether to write the zarr metadata for not"
 )
+parser.add_argument(
+    "X",
+    type=int,
+    help=""
+)
 
 args = parser.parse_args()
 
@@ -83,9 +88,11 @@ k0 = args.k0
 k = args.k
 parallelism = args.parallelism
 write_metadata = args.write_metadata
+X = args.X
 
 stride_int_min = [int(x) for x in args.stride.split(',')][-1]
 scales_int = [int(x) for x in args.scales.split(',')]
+X = X==1
 
 print("data_loader =", data_loader)
 print("basepath =", basepath)
@@ -98,19 +105,20 @@ print("k0 =", k0)
 print("k =", k)
 print("parallelism =", parallelism)
 print("write_metadata =", write_metadata)
+print("X =", X)
 
 data = importlib.import_module(os.path.basename(data_loader))
 
 params = 'patch'+patch_size+'.stride'+stride+'.scales'+args.scales.replace(",",'')+'.k0'+str(k0)+'.k'+str(k)
 
-mesh = data.load_mesh(basepath, params, min_z, max_z)
+mesh = data.load_mesh(basepath, params, min_z, max_z, X)
 
 boxMx = bounding_box.BoundingBox(start=(0, 0, 0), size=(mesh.shape[-1], mesh.shape[-2], 1))
 
 s_min = min(scales_int)
 stride_scale_min = stride_int_min * (2**s_min)
 
-fid = data.create_invmap(mesh.shape, basepath, params, write_metadata)
+fid = data.create_invmap(mesh.shape, basepath, params, write_metadata, X)
 
 print(datetime.now(), 'inverting map')
 invmap = map_utils.invert_map(mesh, boxMx, boxMx, stride_scale_min,

@@ -79,31 +79,29 @@ for z in $(seq $minz $nslices $maxz); do
     mesh_dependency=${mesh_dependency}done\($jobid\)'&&'
 done
 
-params=minz${minz}.maxz${maxz}.patch${patch_size}.stride${stride}.scales${scales//,/}.k0${k0}.k${k}
-
-midz=$(( (maxz - minz) / 2 + minz ))
-
-# mesh, 1st half reverse order
+# mesh
 invmap_dependency=
-bsub_flags=(-Pcellmap -n1 -gpu "num=1" -q gpu_l4 -W 10080)
-logfile=$basepath/mesh1.${params}.log
-bsub_stdout=`bsub ${bsub_flags[@]} -oo $logfile -w ${mesh_dependency%&&} \
-    conda run -n multi-sem --no-capture-output \
-    python -u ./N-planes-mesh.py $data_loader $basepath $midz $minz $patch_size $stride $scales $k0 $k 1`
-jobid=`expr match "$bsub_stdout" "$jobid_regex"`
-invmap_dependency=${invmap_dependency}done\($jobid\)'&&'
+minz0=$(( minz / nslices * nslices ))  # align slices
+for z in $(seq $minz0 $nslices $maxz); do
+    minz2=$(( z < minz ? minz : z ))
+    maxz2=$(( z+nslices-1 > maxz ? maxz : z+nslices-1 ))
+    metadata=$((minz2==minz))
 
-# mesh, 2nd half forward order
-bsub_flags=(-Pcellmap -n1 -gpu "num=1" -q gpu_l4 -W 10080)
-logfile=$basepath/mesh2.${params}.log
-bsub_stdout=`bsub ${bsub_flags[@]} -oo $logfile -w ${mesh_dependency%&&} \
-    conda run -n multi-sem --no-capture-output \
-    python -u ./N-planes-mesh.py $data_loader $basepath $midz $maxz $patch_size $stride $scales $k0 $k 0`
-jobid=`expr match "$bsub_stdout" "$jobid_regex"`
-invmap_dependency=${invmap_dependency}done\($jobid\)'&&'
+    params=minz${minz2}.maxz${maxz2}.patch${patch_size}.stride${stride}.scales${scales//,/}.k0${k0}.k${k}
+
+    # n1 for 10 planes, n4 for 100 planes
+    bsub_flags=(-Pcellmap -n1 -gpu "num=1" -q gpu_l4 -W 10080)
+    logfile=$basepath/mesh.${params}.log
+    grep -lqs Successfully $logfile && continue
+    bsub_stdout=`bsub ${bsub_flags[@]} -oo $logfile -w ${mesh_dependency%&&} \
+        conda run -n multi-sem --no-capture-output \
+        python -u ./N-planes-mesh.py $data_loader $basepath $minz2 $maxz2 $patch_size $stride $scales $k0 $k $metadata`
+    jobid=`expr match "$bsub_stdout" "$jobid_regex"`
+    invmap_dependency=${invmap_dependency}done\($jobid\)'&&'
+done
 
 # invmap
-warp_dependency=
+meshx_dependency=
 for z in $(seq $minz $nslices $maxz); do
     metadata=$((z==minz))
     maxz2=$(( z+nslices > maxz ? maxz : z+nslices ))
@@ -115,7 +113,37 @@ for z in $(seq $minz $nslices $maxz); do
     grep -lqs Successfully $logfile && continue
     bsub_stdout=`bsub ${bsub_flags[@]} -oo $logfile -w ${invmap_dependency%&&} \
         conda run -n multi-sem --no-capture-output \
-        python -u ./N-planes-invmap.py $data_loader $basepath $z $maxz2 $patch_size $stride $scales $k0 $k $nslices $metadata`
+        python -u ./N-planes-invmap.py $data_loader $basepath $z $maxz2 $patch_size $stride $scales $k0 $k $nslices $metadata 0`
+    jobid=`expr match "$bsub_stdout" "$jobid_regex"`
+    meshx_dependency=${meshx_dependency}done\($jobid\)'&&'
+done
+
+params=minz${minz}.maxz${maxz}.patch${patch_size}.stride${stride}.scales${scales//,/}.k0${k0}.k${k}
+
+# meshX
+invmapX_dependency=
+bsub_flags=(-Pcellmap -n8 -gpu "num=1" -q gpu_l4 -W 10080)
+logfile=$basepath/meshX.${params}.log
+bsub_stdout=`bsub ${bsub_flags[@]} -oo $logfile -w ${meshx_dependency%&&} \
+    conda run -n multi-sem --no-capture-output \
+    python -u ./N-planes-meshX.py $data_loader $basepath $minz $maxz $patch_size $stride $scales $k0 $k $nslices`
+jobid=`expr match "$bsub_stdout" "$jobid_regex"`
+invmapX_dependency=${invmapX_dependency}done\($jobid\)'&&'
+
+# invmap
+warp_dependency=
+for z in $(seq $minz $nslices $maxz); do
+    metadata=$((z==minz))
+    maxz2=$(( z+nslices > maxz ? maxz : z+nslices ))
+
+    params=minz${z}.maxz${maxz2}.patch${patch_size}.stride${stride}.scales${scales//,/}.k0${k0}.k${k}
+
+    bsub_flags=(-Pcellmap -n$nslices -W 10080)
+    logfile=$basepath/invmapX.${params}.log
+    grep -lqs Successfully $logfile && continue
+    bsub_stdout=`bsub ${bsub_flags[@]} -oo $logfile -w ${invmapX_dependency%&&} \
+        conda run -n multi-sem --no-capture-output \
+        python -u ./N-planes-invmap.py $data_loader $basepath $z $maxz2 $patch_size $stride $scales $k0 $k $nslices $metadata 1`
     jobid=`expr match "$bsub_stdout" "$jobid_regex"`
     warp_dependency=${warp_dependency}done\($jobid\)'&&'
 done

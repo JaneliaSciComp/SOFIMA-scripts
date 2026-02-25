@@ -50,12 +50,13 @@ def load_flow(basepath, params, z):
         'open': True,
         }).result()[:,z:z+1,...].read().result()
 
-def create_mesh(shape, basepath, params, write_metadata):
+def create_mesh(shape, basepath, params, write_metadata, X):
     r = requests.get(f"{url}/zValues")
     nz = int(float(r.text[1:-1].split(',')[-1]))
+    filename = 'mesh.' if not X else 'meshX.'
     return ts.open({
         'driver': 'zarr',
-        'kvstore': {"driver":"file", "path":os.path.join(basepath, 'mesh.'+params+'.zarr')},
+        'kvstore': {"driver":"file", "path":os.path.join(basepath, filename+params+'.zarr')},
         'metadata': {
             "compressor":{"id":"zstd","level":3},
             "shape":[shape[0],nz,*shape[2:]],
@@ -73,19 +74,21 @@ def create_mesh(shape, basepath, params, write_metadata):
 def write_mesh_plane(fid, plane, z):
     return fid[:,z:z+1,...].write(plane).result()
 
-def load_mesh(basepath, params, z0, z1):
+def load_mesh(basepath, params, z0, z1, X):
+    filename = 'mesh.' if not X else 'meshX.'
     return ts.open({
         'driver': 'zarr',
-        'kvstore': {"driver":"file", "path":os.path.join(basepath, 'mesh.'+params+'.zarr')},
+        'kvstore': {"driver":"file", "path":os.path.join(basepath, filename+params+'.zarr')},
         'open': True,
         }).result()[:,z0:z1+1,...].read().result()
 
-def create_invmap(shape, basepath, params, write_metadata):
+def create_invmap(shape, basepath, params, write_metadata, X):
     r = requests.get(f"{url}/zValues")
     nz = int(float(r.text[1:-1].split(',')[-1]))
+    filename = 'invmap.' if not X else 'invmapX.'
     return ts.open({
         'driver': 'zarr',
-        'kvstore': {"driver":"file", "path":os.path.join(basepath, 'invmap.'+params+'.zarr')},
+        'kvstore': {"driver":"file", "path":os.path.join(basepath, filename+params+'.zarr')},
         'metadata': {
             "compressor":{"id":"zstd","level":3},
             "shape":[shape[0],nz,*shape[2:]],
@@ -103,10 +106,11 @@ def create_invmap(shape, basepath, params, write_metadata):
 def write_invmap_plane(fid, plane, z):
     return fid[:,z:z+1,...].write(plane).result()
 
-def load_invmap(basepath, params, z0, z1):
+def load_invmap(basepath, params, z0, z1, X):
+    filename = 'invmap.' if not X else 'invmapX.'
     return ts.open({
         'driver': 'zarr',
-        'kvstore': {"driver":"file", "path":os.path.join(basepath, 'invmap.'+params+'.zarr')},
+        'kvstore': {"driver":"file", "path":os.path.join(basepath, filename+params+'.zarr')},
         'open': True,
         }).result()[:,z0:z1+1,...].read().result()
 
