@@ -117,7 +117,7 @@ stride_int_min = [int(x) for x in args.stride.split(',')][-1]
 data = importlib.import_module(os.path.basename(data_loader))
 
 params = 'patch'+str(patch_size)+'.stride'+stride+'.scales'+args.scales.replace(",",'')+'.k0'+str(k0)+'.k'+str(k)+'.reps'+str(reps)
-invmap = data.load_invmap(basepath, params, min_z, max_z)
+invmap = data.load_invmap(basepath, params, min_z, max_z, False)
 
 print(datetime.now(), 'warping planes')
 

@@ -2,7 +2,7 @@ using Zarr, NPZ
 
 load_data(basepath, s) = zopen(joinpath(basepath, string("stitched.s",s,".zarr")))
 
-load_invmap(basepath, params) = zopen(joinpath(basepath, string("invmap.",params,".zarr")))
+load_invmap(basepath, params) = zopen(joinpath(basepath, string("invmapX.",params,".zarr")))
 
 create_warp(shape, chunkxy, chunkz, basepath, params) =
         zcreate(UInt8, shape...;
