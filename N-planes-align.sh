@@ -87,10 +87,13 @@ for z in $(seq $minz $nslices $maxz); do
 done
 
 # warp
-julia -e "include(\"${data_loader}.jl\"); \
-          curr = load_data(\"$basepath\", 0); \
-          params = string(\"patch\", \"$patch_size\", \".stride\", \"$stride\", \".scales\", replace(\"$scales\", \",\"=>\"\"), \".k0\", \"$k0\", \".k\", \"$k\"); \
-          create_warp(size(curr), $chunkxy, $chunkz, \"$basepath\", params)"
+bsub_stdout=`bsub ${bsub_flags[@]} -oo $logfile -w "${warp_dependency%&&}" \
+    julia -e "include(\"${data_loader}.jl\"); \
+              curr = load_data(\"$basepath\", 0); \
+              params = string(\"patch\", \"$patch_size\", \".stride\", \"$stride\", \".scales\", replace(\"$scales\", \",\"=>\"\"), \".k0\", \"$k0\", \".k\", \"$k\"); \
+              create_warp(size(curr), $chunkxy, $chunkz, \"$basepath\", params)"`
+jobid=`expr match "$bsub_stdout" "$jobid_regex"`
+warp2_dependency=done\($jobid\)
 
 multiscale_dependency=
 minz0=$(( minz / chunkz * chunkz ))
@@ -102,8 +105,8 @@ for z in $(seq $minz0 $nslices $maxz); do
 
     bsub_flags=(-Pcellmap -n8 -W 1440)
     logfile=$basepath/warp.${params}.log
-    bsub_stdout=`bsub ${bsub_flags[@]} -oo $logfile -w "${warp_dependency%&&}" \
     grep -lqs Successfully $logfile && continue
+    bsub_stdout=`bsub ${bsub_flags[@]} -oo $logfile -w "${warp2_dependency%&&}" \
         julia -t auto ./N-planes-warp.jl ${data_loader}.jl $basepath $minz2 $maxz2 $patch_size $stride $scales $k0 $k $chunkxy $chunkz`
     jobid=`expr match "$bsub_stdout" "$jobid_regex"`
     multiscale_dependency=${multiscale_dependency}done\($jobid\)'&&'
