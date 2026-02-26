@@ -18,7 +18,7 @@ s = ArgParseSettings()
         arg_type=String
         help="Side length of (square) patch for processing (in pixels, e.g., 32)"
     "stride"
-        arg_type=Int
+        arg_type=String
         help="Distance of adjacent patches (in pixels, e.g., 8)"
     "scales"
         help="the spatial resolutions to use when computing the flow field"
@@ -57,13 +57,13 @@ const acs = DiskArrays.approx_chunksize(DiskArrays.eachchunk(curr))
 const ccurr = DiskArrays.cache(curr, maxsize=9*acs[1]*acs[2]*sizeof(eltype(curr)))
 
 const scales_int = parse.(Int, split(args["scales"],','))
-const stride = args["stride"]
+const stride_int_min = parse.(Int, split(args["stride"],','))[end]
 
 const s_min = minimum(scales_int)
-const stride_min = stride * (2^s_min)
+const stride_scale_min = stride_int_min * (2^s_min)
 
-const sx = range(0, size(curr,1)-1, step=stride_min)
-const sy = range(0, size(curr,2)-1, step=stride_min)
+const sx = range(0, size(curr,1)-1, step=stride_scale_min)
+const sy = range(0, size(curr,2)-1, step=stride_scale_min)
 
 const warped = open_warp(args["basepath"], params)
 

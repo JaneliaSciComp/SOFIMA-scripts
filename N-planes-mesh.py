@@ -56,7 +56,7 @@ parser.add_argument(
 )
 parser.add_argument(
     "stride",
-    type=int,
+    type=str,
     help="Distance of adjacent patches (in pixels, e.g., 8)"
 )
 parser.add_argument(
@@ -87,10 +87,12 @@ z0 = args.z0
 z1 = args.z1
 patch_size = args.patch_size
 stride = args.stride
-scales_int = [int(x) for x in args.scales.split(',')]
 k0 = args.k0
 k = args.k
 write_metadata = args.write_metadata
+
+stride_int_min = [int(x) for x in args.stride.split(',')][-1]
+scales_int = [int(x) for x in args.scales.split(',')]
 
 print("data_loader =", data_loader)
 print("basepath =", basepath)
@@ -105,12 +107,12 @@ print("write_metadata =", write_metadata)
 
 data = importlib.import_module(os.path.basename(data_loader))
 
-params = 'patch'+patch_size+'.stride'+str(stride)+'.scales'+args.scales.replace(",",'')+'.k0'+str(k0)+'.k'+str(k)
+params = 'patch'+patch_size+'.stride'+stride+'.scales'+args.scales.replace(",",'')+'.k0'+str(k0)+'.k'+str(k)
 
 flow = data.load_flow(basepath, params, z0)
 
 config = mesh.IntegrationConfig(dt=0.001, gamma=0.0, k0=k0, k=k,
-                                stride=(stride, stride),
+                                stride=(stride_int_min, stride_int_min),
                                 num_iters=1000, max_iters=100000,
                                 stop_v_max=0.005, dt_max=1000, start_cap=0.01,
                                 final_cap=10, prefer_orig_order=True)
@@ -119,7 +121,7 @@ solved = np.zeros_like(flow[:, 0:1, ...])
 origin = jnp.array([0., 0.])
 
 s_min = min(scales_int)
-stride_min = stride * (2**s_min)
+stride_scale_min = stride_int_min * (2**s_min)
 
 fid = data.create_mesh(solved.shape, basepath, params, write_metadata)
 if write_metadata:
@@ -132,8 +134,8 @@ for z in range(z0+1, z1+1) if z0 < z1 else range(z0-1, z1-1, -1):
       flow = data.load_flow(basepath, params, z)
   else:
       flow = -data.load_flow(basepath, params, z+1)
-  prev = map_utils.compose_maps_fast(flow[:, 0:1, ...], origin, stride_min,
-                                     solved, origin, stride_min)
+  prev = map_utils.compose_maps_fast(flow[:, 0:1, ...], origin, stride_scale_min,
+                                     solved, origin, stride_scale_min)
   x = np.zeros_like(solved)
   x, e_kin, num_steps = mesh.relax_mesh(x, prev, config)
   solved = np.array(x)

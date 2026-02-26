@@ -45,7 +45,7 @@ parser.add_argument(
 )
 parser.add_argument(
     "stride",
-    type=int,
+    type=str,
     help="Distance of adjacent patches (in pixels, e.g., 8)"
 )
 parser.add_argument(
@@ -72,9 +72,11 @@ print("patch_size =", patch_size)
 print("stride =", stride)
 print("chunk =", chunk)
 
+stride_int_min = [int(x) for x in args.stride.split(',')][-1]
+
 data = importlib.import_module(os.path.basename(data_loader))
 
-params = 'patch'+patch_size+'.stride'+str(stride)+'.top'+os.path.splitext(top)[0]
+params = 'patch'+patch_size+'.stride'+stride+'.top'+os.path.splitext(top)[0]
 
 invmap = data.load_invmap(basepath, params)
 
@@ -94,7 +96,7 @@ boxMx = bounding_box.BoundingBox(start=(0, 0, 0),
 
 print(datetime.now(), 'warping data')
 warped[1, ...] = warp.warp_subvolume(
-        curr, data_box, invmap, boxMx, stride, out_box, 'lanczos')[0, ...]
+        curr, data_box, invmap, boxMx, stride_int_min, out_box, 'lanczos')[0, ...]
 
 print(datetime.now(), 'writing data')
 data.write_warp(chunk, basepath, params, warped)
