@@ -47,7 +47,7 @@ parser.add_argument(
 )
 parser.add_argument(
     "stride",
-    type=int,
+    type=str,
     help="Distance of adjacent patches (in pixels, e.g., 8)"
 )
 parser.add_argument(
@@ -75,6 +75,11 @@ print("stride =", stride)
 print("batch_size =", batch_size)
 
 patch_size_int = [int(x) for x in args.patch_size.split(',')]
+stride_int = [int(x) for x in args.stride.split(',')]
+
+if len(patch_size_int) != len(stride_int):
+    print("lengths of patch_size and stride must be equal")
+    exit()
 
 data = importlib.import_module(os.path.basename(data_loader))
 
@@ -86,17 +91,17 @@ ttop, tbot = data.load_data(basepath, top, bot)
 mfc = flow_field.JAXMaskedXCorrWithStatsCalculator()
 t0 = time.time()
 flow = mfc.flow_field(ttop, tbot,
-                      (patch_size_int[0], patch_size_int[0]), (stride, stride),
+                      (patch_size_int[0], patch_size_int[0]), (stride_int[0], stride_int[0]),
                       batch_size=batch_size)
 print("mean of flows = ", np.nanmean(np.abs(flow[np.isfinite(flow)])))
 print("flow_field took", time.time() - t0, "sec")
 for i in range(1,len(patch_size_int)):
     t0 = time.time()
     flow = mfc.flow_field(ttop, tbot,
-                          (patch_size_int[i], patch_size_int[i]), (stride, stride),
+                          (patch_size_int[i], patch_size_int[i]), (stride_int[i], stride_int[i]),
                           batch_size=batch_size,
                           pre_targeting_field = flow[:2,::],
-                          pre_targeting_step = (stride, stride))
+                          pre_targeting_step = (stride_int[i-1], stride_int[i-1]))
     print("mean of flows = ", np.nanmean(np.abs(flow[np.isfinite(flow)])))
     print("flow_field took", time.time() - t0, "sec")
 
@@ -111,7 +116,7 @@ flow = np.transpose(flow, [1, 0, 2, 3])
 
 # Pad to account for the edges of the images where there is insufficient
 # context to estimate flow.
-pad = patch_size_int[-1] // 2 // stride
+pad = patch_size_int[-1] // 2 // stride_int[-1]
 flow = np.pad(flow, [[0, 0], [0, 0], [pad, pad], [pad, pad]], constant_values=np.nan)
 
 # remove uncertain flow estimates by replacing them with NaNs
@@ -124,7 +129,8 @@ print("clean_flow took", time.time() - t0, "sec")
 
 # find a configuration of the imagery that is compatible with the estimated
 # flow field and preserves the original geometry as much as possible.
-config = mesh.IntegrationConfig(dt=0.001, gamma=0.0, k0=0.01, k=0.1, stride=(stride, stride),
+config = mesh.IntegrationConfig(dt=0.001, gamma=0.0, k0=0.01, k=0.1,
+                                stride=(stride_int[-1], stride_int[-1]),
                                 num_iters=1000, max_iters=100000,
                                 stop_v_max=0.005, dt_max=1000, start_cap=0.01,
                                 final_cap=10, prefer_orig_order=True)
@@ -136,7 +142,7 @@ t0 = time.time()
 solved, e_kin, num_steps = mesh.relax_mesh(solved, flow_clean, config)
 print("relax_mesh took", time.time() - t0, "sec")
 
-params = 'patch'+patch_size+'.stride'+str(stride)+'.top'+os.path.splitext(top)[0]
+params = 'patch'+patch_size+'.stride'+stride+'.top'+os.path.splitext(top)[0]
 
 data.save_flow(flow_clean, basepath, params)
 data.save_mesh(solved, basepath, params)

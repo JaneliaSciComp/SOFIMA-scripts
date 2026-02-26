@@ -2,8 +2,8 @@
 
 # launches dependent cluster jobs for each step needed to align a stack of N planes
 
-# usage: ./N-planes-align.sh <data-loader> <basepath> <min-z> <max-z> <patch-sizes> <stride> <scales> <k0> <k> <batch-size> <chunkxy-size> <chunkz-size> <num-slices-per-job>
-# e.g. ./N-planes-align.sh "data-aphid-N-planes" /nrs/cellmap/arthurb/aphid/stitch.patch16.stride8.scale1.k00.01.k0.1.crop0-0.margin100 10770 10772 100,50 5 1,2 0.01 0.1 2048 1024 2 4
+# usage: ./N-planes-align.sh <data-loader> <basepath> <min-z> <max-z> <patch-sizes> <strides> <scales> <k0> <k> <batch-size> <chunkxy-size> <chunkz-size> <num-slices-per-job>
+# e.g. ./N-planes-align.sh "data-aphid-N-planes" /nrs/cellmap/arthurb/aphid/stitch.patch16.stride8.scale1.k00.01.k0.1.crop0-0.margin100 10770 10772 100,50 20,10 1,2 0.01 0.1 2048 1024 2 4
 
 data_loader=$1
 basepath=$2

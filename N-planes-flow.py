@@ -59,7 +59,7 @@ parser.add_argument(
 )
 parser.add_argument(
     "stride",
-    type=int,
+    type=str,
     help="Distance of adjacent patches (in pixels, e.g., 8)"
 )
 parser.add_argument(
@@ -114,11 +114,16 @@ print("batch_size =", batch_size)
 print("write_metadata =", write_metadata)
 
 patch_size_int = [int(x) for x in args.patch_size.split(',')]
+stride_int = [int(x) for x in args.stride.split(',')]
 scales_int = [int(x) for x in scales.split(',')]
+
+if len(patch_size_int) != len(stride_int):
+    print("lengths of patch_size and stride must be equal")
+    exit()
 
 data = importlib.import_module(os.path.basename(data_loader))
 
-def _compute_flow(scales, patch_size, prev_flows=None):
+def _compute_flow(scales, patch_size, stride, prev_flows=None, pre_stride=None):
   mfc = flow_field.JAXMaskedXCorrWithStatsCalculator()
   flows = {s:[] for s in scales}
   _prev = data.load_data(basepath, min_z, 0)
@@ -149,16 +154,16 @@ def _compute_flow(scales, patch_size, prev_flows=None):
                                          (stride, stride),
                                          batch_size = batch_size,
                                          pre_targeting_field = prev_flows[s][z-(min_z+1)][:2, ::] if prev_flows else None,
-                                         pre_targeting_step = (stride, stride)))
+                                         pre_targeting_step = (pre_stride, pre_stride) if pre_stride else None))
       prev = curr
 
   return flows
 
 print(datetime.now(), 'computing flow')
-fNx = _compute_flow(scales_int, patch_size_int[0])
+fNx = _compute_flow(scales_int, patch_size_int[0], stride_int[0])
 print("sum of flows = ", sum([np.nansum(x) for x in fNx.values()]))
 for i in range(1, len(patch_size_int)):
-    fNx = _compute_flow(scales_int, patch_size_int[i], fNx)
+    fNx = _compute_flow(scales_int, patch_size_int[i], stride_int[i], fNx, stride_int[i-1])
     print("sum of flows = ", sum([np.nansum(x) for x in fNx.values()]))
 
 fN = {}
@@ -167,7 +172,7 @@ for s in scales_int:
     flows = np.transpose(np.array(fNx[s]), [1, 0, 2, 3])
 
     # Pad to account for the edges of the images where there is insufficient context to estimate flow.
-    pad = patch_size_int[-1] // 2 // stride
+    pad = patch_size_int[-1] // 2 // stride_int[-1]
     flows = np.pad(flows, [[0, 0], [0, 0], [pad, pad], [pad, pad]], constant_values=np.nan)
 
     fN[s] = flow_utils.clean_flow(flows, min_peak_ratio=1.6, min_peak_sharpness=1.6,
@@ -270,7 +275,7 @@ plt.tight_layout()
 plt.savefig("flows-f2-f2hi-d.tif", dpi=300)
 '''
 
-params = 'patch'+patch_size+'.stride'+str(stride)+'.scales'+args.scales.replace(",",'')+'.k0'+str(k0)+'.k'+str(k)
+params = 'patch'+patch_size+'.stride'+stride+'.scales'+args.scales.replace(",",'')+'.k0'+str(k0)+'.k'+str(k)
 
 data.save_flow(final_flow, min_z, max_z, basepath, params, write_metadata)
 

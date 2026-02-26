@@ -39,7 +39,7 @@ parser.add_argument(
 )
 parser.add_argument(
     "stride",
-    type=int,
+    type=str,
     help="Distance of adjacent patches (in pixels, e.g., 8)"
 )
 parser.add_argument(
@@ -71,9 +71,11 @@ print("stride =", stride)
 print("chunk =", chunk)
 print("parallelism =", parallelism)
 
+stride_int_min = [int(x) for x in args.stride.split(',')][-1]
+
 data = importlib.import_module(os.path.basename(data_loader))
 
-params = 'patch'+patch_size+'.stride'+str(stride)+'.top'+os.path.splitext(top)[0]
+params = 'patch'+patch_size+'.stride'+stride+'.top'+os.path.splitext(top)[0]
 
 flow = data.load_flow(basepath, params)
 mesh = data.load_mesh(basepath, params)
@@ -83,7 +85,7 @@ box1x = bounding_box.BoundingBox(start=(0, 0, 0), size=(flow.shape[-1], flow.sha
 # Image warping requires an inverse coordinate map
 # does NOT use GPU, but does use a lot of RAM
 t0 = time.time()
-invmap = map_utils.invert_map(mesh, box1x, box1x, stride, parallelism=parallelism)
+invmap = map_utils.invert_map(mesh, box1x, box1x, stride_int_min, parallelism=parallelism)
 print("invert_map took", time.time() - t0, "sec")
 
 data.save_invmap(chunk, basepath, params, invmap)

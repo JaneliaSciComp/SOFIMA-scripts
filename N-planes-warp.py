@@ -44,7 +44,7 @@ parser.add_argument(
 )
 parser.add_argument(
     "stride",
-    type=int,
+    type=str,
     help="Distance of adjacent patches (in pixels, e.g., 8)"
 )
 parser.add_argument(
@@ -112,15 +112,17 @@ print("chunkxy =", chunkxy)
 print("chunkz =", chunkz)
 print("write_metadata =", write_metadata)
 
+stride_int_min = [int(x) for x in args.stride.split(',')][-1]
+
 data = importlib.import_module(os.path.basename(data_loader))
 
-params = 'patch'+str(patch_size)+'.stride'+str(stride)+'.scales'+args.scales.replace(",",'')+'.k0'+str(k0)+'.k'+str(k)+'.reps'+str(reps)
+params = 'patch'+str(patch_size)+'.stride'+stride+'.scales'+args.scales.replace(",",'')+'.k0'+str(k0)+'.k'+str(k)+'.reps'+str(reps)
 invmap = data.load_invmap(basepath, params, min_z, max_z)
 
 print(datetime.now(), 'warping planes')
 
 s_min = min(scales_int)
-stride_min = stride * (2**s_min)
+stride_scale_min = stride_int_min * (2**s_min)
 
 warped0 = data.load_data(basepath, min_z,0)
 warped = np.zeros((chunkz, *warped0.shape), dtype=warped0.dtype)
@@ -151,7 +153,7 @@ while z <= max_z:
   print(datetime.now(), 'warping chunk plane', (z-1)//chunkz)
   warped[z0 % chunkz : (z-1) % chunkz + 1, ...] = warp.warp_subvolume(
       curr[:,z0 % chunkz : (z-1) % chunkz + 1, ...], data_box,
-      invmap[:, z0-min_z : z-min_z+1, ...], boxMx, stride_min, out_box, 'lanczos',
+      invmap[:, z0-min_z : z-min_z+1, ...], boxMx, stride_scale_min, out_box, 'lanczos',
       parallelism=chunkz)[0, ...]
 
   print(datetime.now(), 'writing chunk plane', (z-1)//chunkz)

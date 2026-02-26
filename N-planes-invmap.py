@@ -43,7 +43,7 @@ parser.add_argument(
 )
 parser.add_argument(
     "stride",
-    type=int,
+    type=str,
     help="Distance of adjacent patches (in pixels, e.g., 8)"
 )
 parser.add_argument(
@@ -79,11 +79,13 @@ min_z = args.min_z
 max_z = args.max_z
 patch_size = args.patch_size
 stride = args.stride
-scales_int = [int(x) for x in args.scales.split(',')]
 k0 = args.k0
 k = args.k
 parallelism = args.parallelism
 write_metadata = args.write_metadata
+
+stride_int_min = [int(x) for x in args.stride.split(',')][-1]
+scales_int = [int(x) for x in args.scales.split(',')]
 
 print("data_loader =", data_loader)
 print("basepath =", basepath)
@@ -99,19 +101,19 @@ print("write_metadata =", write_metadata)
 
 data = importlib.import_module(os.path.basename(data_loader))
 
-params = 'patch'+patch_size+'.stride'+str(stride)+'.scales'+args.scales.replace(",",'')+'.k0'+str(k0)+'.k'+str(k)
+params = 'patch'+patch_size+'.stride'+stride+'.scales'+args.scales.replace(",",'')+'.k0'+str(k0)+'.k'+str(k)
 
 mesh = data.load_mesh(basepath, params, min_z, max_z)
 
 boxMx = bounding_box.BoundingBox(start=(0, 0, 0), size=(mesh.shape[-1], mesh.shape[-2], 1))
 
 s_min = min(scales_int)
-stride_min = stride * (2**s_min)
+stride_scale_min = stride_int_min * (2**s_min)
 
 fid = data.create_invmap(mesh.shape, basepath, params, write_metadata)
 
 print(datetime.now(), 'inverting map')
-invmap = map_utils.invert_map(mesh, boxMx, boxMx, stride_min,
+invmap = map_utils.invert_map(mesh, boxMx, boxMx, stride_scale_min,
                               parallelism=parallelism, verbose=True)
 
 print(datetime.now(), 'saving inverted map')

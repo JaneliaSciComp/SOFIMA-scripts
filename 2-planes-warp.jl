@@ -21,7 +21,7 @@ s = ArgParseSettings()
         arg_type=String
         help="Side length of (square) patch for processing (in pixels, e.g., 32)"
     "stride"
-        arg_type=Int
+        arg_type=String
         help="Distance of adjacent patches (in pixels, e.g., 8)"
     "chunk"
         arg_type=Int
@@ -49,10 +49,10 @@ const top, bot = load_data(args["basepath"], args["top"], args["bot"])
 const acs = DiskArrays.approx_chunksize(DiskArrays.eachchunk(bot))
 const cbot = DiskArrays.cache(bot, maxsize=9*acs[1]*acs[2]*sizeof(eltype(bot)))
 
-const stride = args["stride"]
+const stride_int_min = parse.(Int, split(args["stride"],','))[end]
 
-const sx = range(0, size(bot,1)-1, step=stride)
-const sy = range(0, size(bot,2)-1, step=stride)
+const sx = range(0, size(bot,1)-1, step=stride_int_min)
+const sy = range(0, size(bot,2)-1, step=stride_int_min)
 
 const warped = open_warp((size(bot)...,2), args["chunk"], 2, args["basepath"], params)
 

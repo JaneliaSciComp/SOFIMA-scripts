@@ -1,6 +1,6 @@
 # ./2-planes-align.sh <data-loader> <basepath> <top> <bot> <patch-sizes> <strides> <batch-size> <chunk>
 
-# ./2-planes-align.sh data-hess-2-planes /nrs/hess/data/hess_wafers_60_61/export/zarr_datasets/surface-align/run_20251219_110000/pass03-scale2 flat-w61_serial_080_to_089-w61_s080_r00-top-face.zarr flat-w61_serial_070_to_079-w61_s079_r00-bot-face.zarr 256,128,64 8 1024 1024
+# ./2-planes-align.sh data-hess-2-planes /nrs/hess/data/hess_wafers_60_61/export/zarr_datasets/surface-align/run_20251219_110000/pass03-scale2 flat-w61_serial_080_to_089-w61_s080_r00-top-face.zarr flat-w61_serial_070_to_079-w61_s079_r00-bot-face.zarr 256,128,64 64,32,16 1024 1024
 
 data_loader=$1
 basepath=$2
