@@ -37,7 +37,7 @@ for z in $(seq $minz $nslices $maxz); do
     # n1 for 10 planes, n4 for 100 planes
     bsub_flags=(-Pcellmap -n2 -gpu "num=1" -q gpu_l4 -W 1440)
     logfile=$basepath/flow.${params}.log
-    grep -lq Successfully $logfile && continue
+    grep -lqs Successfully $logfile && continue
     bsub_stdout=`bsub ${bsub_flags[@]} -oo $logfile \
         conda run -n multi-sem --no-capture-output \
         python -u ./N-planes-flow.py $data_loader $basepath $z $maxz2 $patch_size $stride $scales $k0 $k $batch_size $metadata`
@@ -78,7 +78,7 @@ for z in $(seq $minz $nslices $maxz); do
 
     bsub_flags=(-Pcellmap -n$nslices -W 10080)
     logfile=$basepath/invmap.${params}.log
-    grep -lq Successfully $logfile && continue
+    grep -lqs Successfully $logfile && continue
     bsub_stdout=`bsub ${bsub_flags[@]} -oo $logfile -w ${invmap_dependency%&&} \
         conda run -n multi-sem --no-capture-output \
         python -u ./N-planes-invmap.py $data_loader $basepath $z $maxz2 $patch_size $stride $scales $k0 $k $nslices $metadata`
@@ -102,8 +102,8 @@ for z in $(seq $minz0 $nslices $maxz); do
 
     bsub_flags=(-Pcellmap -n8 -W 1440)
     logfile=$basepath/warp.${params}.log
-    grep -lq Successfully $logfile && continue
     bsub_stdout=`bsub ${bsub_flags[@]} -oo $logfile -w "${warp_dependency%&&}" \
+    grep -lqs Successfully $logfile && continue
         julia -t auto ./N-planes-warp.jl ${data_loader}.jl $basepath $minz2 $maxz2 $patch_size $stride $scales $k0 $k $chunkxy $chunkz`
     jobid=`expr match "$bsub_stdout" "$jobid_regex"`
     multiscale_dependency=${multiscale_dependency}done\($jobid\)'&&'
