@@ -19,6 +19,11 @@ chunkxy=${11}
 chunkz=${12}
 nslices=${13}  # integer multiple of chunkz
 
+if (( nslices % chunkz != 0 )) ; then
+    echo nslices must be an integer multiple of chunkz
+    exit
+fi
+
 jobid_regex='Job <\([0-9]*\)> '
 
 # flow
