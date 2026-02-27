@@ -11,5 +11,7 @@ dependencies:
   - requests
   - scikit-image>=0.17.2
   - pip:
+    - gin-config
+    - tensorstore
     - connectomics
     - git+https://github.com/google-research/sofima
