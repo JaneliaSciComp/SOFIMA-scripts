@@ -69,7 +69,7 @@ for z in $(seq $minz $nslices $maxz); do
     params=minz${z}.maxz${maxz2}.patch${patch_size}.stride${stride}.scales${scales//,/}.k0${k0}.k${k}
 
     # n1 for 10 planes, n4 for 100 planes
-    bsub_flags=(-Pcellmap -n2 -gpu "num=1" -q gpu_l4 -W 1440)
+    bsub_flags=(-Pcellmap -n3 -gpu "num=1" -q gpu_l4 -W 1440)
     logfile=$basepath/flow.${params}.log
     grep -lqs Successfully $logfile && continue
     bsub_stdout=`bsub ${bsub_flags[@]} -oo $logfile -w ${flow_dependency%&&} \
@@ -122,7 +122,7 @@ params=minz${minz}.maxz${maxz}.patch${patch_size}.stride${stride}.scales${scales
 
 # meshX
 invmapX_dependency=
-bsub_flags=(-Pcellmap -n8 -gpu "num=1" -q gpu_l4 -W 10080)
+bsub_flags=(-Pcellmap -n32 -gpu "num=1" -q gpu_l4_large -W 10080)
 logfile=$basepath/meshX.${params}.log
 bsub_stdout=`bsub ${bsub_flags[@]} -oo $logfile -w ${meshx_dependency%&&} \
     conda run -n multi-sem --no-capture-output \
