@@ -111,6 +111,7 @@ data = importlib.import_module(os.path.basename(data_loader))
 
 params = 'patch'+patch_size+'.stride'+stride+'.scales'+args.scales.replace(",",'')+'.k0'+str(k0)+'.k'+str(k)
 
+print(datetime.now(), 'loading mesh')
 mesh = data.load_mesh(basepath, params, min_z, max_z, X)
 
 boxMx = bounding_box.BoundingBox(start=(0, 0, 0), size=(mesh.shape[-1], mesh.shape[-2], 1))
@@ -118,6 +119,7 @@ boxMx = bounding_box.BoundingBox(start=(0, 0, 0), size=(mesh.shape[-1], mesh.sha
 s_min = min(scales_int)
 stride_scale_min = stride_int_min * (2**s_min)
 
+print(datetime.now(), 'creating inverted map')
 fid = data.create_invmap(mesh.shape, basepath, params, write_metadata, X)
 
 print(datetime.now(), 'inverting map')

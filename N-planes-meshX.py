@@ -158,6 +158,7 @@ print(datetime.now(), 'inverting xblocks')
 xblk_inv = map_utils.invert_map(xblk_upsampled, map_box, map_box, stride_int_min,
                                 parallelism=None, verbose=True)
 
+print(datetime.now(), 'loading main and inverted main')
 main = []
 main_inv = []
 minz0 = (minz // nslices) * nslices
@@ -170,8 +171,7 @@ for z in range(minz0, maxz + 1, nslices):
 main = np.concatenate(main, axis=1)
 main_inv = np.concatenate(main_inv, axis=1)
 
-print(datetime.now(), 'loading and inverting last')
-
+print(datetime.now(), 'loading inverted last')
 z_map = {}
 iz = 0
 last_inv = []
@@ -215,6 +215,7 @@ main_box = bounding_box.BoundingBox(start=(0, 0, 0),
                                     size=(*main.shape[2:][::-1], maxz-minz+1))
 global_map = reconcile.process(subvolume.Subvolume(main, main_box), verbose=True)
 
+print(datetime.now(), 'writing meshX')
 fid = data.create_mesh(global_map.shape, basepath, params, 1, True)
 for z in range(minz, maxz+1):
     data.write_mesh_plane(fid, global_map.data[:,z-minz:z-minz+1,:,:], z)
