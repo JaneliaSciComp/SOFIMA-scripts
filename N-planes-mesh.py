@@ -126,7 +126,7 @@ stride_scale_min = stride_int_min * (2**s_min)
 fid = data.create_mesh(solved.shape, basepath, params, write_metadata, False)
 
 print(datetime.now(), 'composing maps')
-for z in range(z0, z1+1) if z0 < z1 else range(z0, z1-1, -1):
+for z in range(z0+1, z1+2) if z0 < z1 else range(z0-1, z1-2, -1):
   print(datetime.now(), 'z =', z)
   if z0 < z1:
       flow = data.load_flow(basepath, params, z)

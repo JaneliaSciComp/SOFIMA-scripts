@@ -118,7 +118,7 @@ minz0 = (minz // nslices) * nslices
 for z in range(minz0, maxz + 1, nslices):
     minz2 = max(z, minz)
     maxz2 = min(z + nslices - 1, maxz)
-    xblock_flow.append(data.load_mesh(basepath, params, maxz2, maxz2, False))
+    xblock_flow.append(data.load_mesh(basepath, params, maxz2+1, maxz2+1, False))
 
 xblock_flow = np.concatenate(xblock_flow, axis=1)
 
@@ -165,8 +165,10 @@ minz0 = (minz // nslices) * nslices
 for z in range(minz0, maxz + 1, nslices):
     minz2 = max(z, minz)
     maxz2 = min(z + nslices - 1, maxz)
-    main.append(data.load_mesh(basepath, params, minz2, maxz2, False))
-    main_inv.append(data.load_invmap(basepath, params, minz2, maxz2, False))
+    main.append(np.zeros_like(xblock_flow[:, 0:1, ...]))
+    main.append(data.load_mesh(basepath, params, minz2+1, maxz2, False))
+    main_inv.append(np.zeros_like(xblock_flow[:, 0:1, ...]))
+    main_inv.append(data.load_invmap(basepath, params, minz2+1, maxz2, False))
 
 main = np.concatenate(main, axis=1)
 main_inv = np.concatenate(main_inv, axis=1)
@@ -182,7 +184,7 @@ for z in range(minz0, maxz + 1, nslices):
     z_map[str(maxz2-minz)] = iz
     iz += 1
     last_inv.append(np.zeros_like(main[:, 0:(maxz2-minz2), ...]))
-    last_inv.append(data.load_invmap(basepath, params, maxz2, maxz2, False))
+    last_inv.append(data.load_invmap(basepath, params, maxz2+1, maxz2+1, False))
 
 last_inv = np.concatenate(last_inv, axis=1)
 
