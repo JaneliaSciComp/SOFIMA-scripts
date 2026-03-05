@@ -176,14 +176,14 @@ def _compute_flow(scales, patch_size, stride, prev_flows=None, pre_stride=None):
   with futures.ThreadPoolExecutor() as tpe:
     # Prefetch the next sections to memory so that we don't have to wait for them
     # to load when the GPU becomes available.
-    for z in range(min_z+1, max_z+1):
+    for z in range(min_z+1, max_z+2):
       fs.append(tpe.submit(lambda z=z: data.load_data(basepath, z, 0)))
       fs_mask.append(tpe.submit(lambda z=z: data.load_mask(basepath, params, z)))
 
     fs = fs[::-1]
     fs_mask = fs_mask[::-1]
 
-    for z in range(min_z+1, max_z+1):
+    for z in range(min_z+1, max_z+2):
       print(datetime.now(), 'z =', z)
       _curr = fs.pop().result()
       curr = {s:_curr if s==0 else downscale_local_mean(_curr, (2**s,2**s)) for s in scales}
@@ -329,7 +329,7 @@ plt.savefig("flows-f2-f2hi-d.tif", dpi=300)
 
 params = 'patch'+patch_size+'.stride'+stride+'.scales'+args.scales.replace(",",'')+'.k0'+str(k0)+'.k'+str(k)
 
-data.save_flow(final_flow, min_z, max_z, basepath, params, write_metadata)
+data.save_flow(final_flow, min_z+1, max_z+1, basepath, params, write_metadata)
 
 if debug:
     for s in scales_int:

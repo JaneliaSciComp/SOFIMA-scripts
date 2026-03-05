@@ -41,7 +41,7 @@ def save_flow(flow, min_z, max_z, basepath, params, write_metadata):
         'open': True,
         'delete_existing': False,
         'assume_metadata': write_metadata==0,
-        }).result()[:,min_z+1:max_z+1,...].write(flow).result()
+        }).result()[:,min_z:max_z+1,...].write(flow).result()
 
 def load_flow(basepath, params, z):
     return ts.open({

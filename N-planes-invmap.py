@@ -112,7 +112,7 @@ data = importlib.import_module(os.path.basename(data_loader))
 params = 'patch'+patch_size+'.stride'+stride+'.scales'+args.scales.replace(",",'')+'.k0'+str(k0)+'.k'+str(k)
 
 print(datetime.now(), 'loading mesh')
-mesh = data.load_mesh(basepath, params, min_z, max_z, X)
+mesh = data.load_mesh(basepath, params, min_z+1, max_z+1, X)
 
 boxMx = bounding_box.BoundingBox(start=(0, 0, 0), size=(mesh.shape[-1], mesh.shape[-2], 1))
 
@@ -127,5 +127,5 @@ invmap = map_utils.invert_map(mesh, boxMx, boxMx, stride_scale_min,
                               parallelism=parallelism, verbose=True)
 
 print(datetime.now(), 'saving inverted map')
-for z in range(min_z, max_z+1):
-    data.write_invmap_plane(fid, invmap[:, z-min_z : z-min_z+1, ...], z)
+for z in range(min_z+1, max_z+2):
+    data.write_invmap_plane(fid, invmap[:, z-min_z-1 : z-min_z, ...], z)

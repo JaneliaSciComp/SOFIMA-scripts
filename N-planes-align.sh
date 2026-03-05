@@ -5,6 +5,14 @@
 # usage: ./N-planes-align.sh <data-loader> <basepath> <min-z> <max-z> <scale> <high_pass> <uniform> <threshold> <close> <patch-sizes> <strides> <scales> <k0> <k> <batch-size> <chunkxy-size> <chunkz-size> <num-slices-per-job>
 # e.g. ./N-planes-align.sh "data-aphid-N-planes" /nrs/cellmap/arthurb/aphid/stitch.patch16.stride8.scale1.k00.01.k0.1.crop0-0.margin100 10770 10772 2 3 10 2 15 100,50 20,10 1,2 0.01 0.1 2048 1024 2 4
 
+# in the alignment notebook,
+#   flow[0] is from vol[1] onto vol[0]
+#   mesh[0] is zeros, and mesh[1] is flow[0] == vol[1] -> vol[0]
+#   invmap is same as mesh
+#   block is same as mesh
+# in this code though,
+#   flow[1] is from vol[1] onto vol[0], otherwise mesh and invmap the same
+
 data_loader=$1
 basepath=$2
 minz=$3
@@ -64,7 +72,7 @@ done
 mesh_dependency=
 for z in $(seq $minz $nslices $maxz); do
     metadata=$((z==minz))
-    maxz2=$(( z+nslices > maxz ? maxz : z+nslices ))
+    maxz2=$(( z+nslices-1 > maxz ? maxz : z+nslices-1 ))
 
     params=minz${z}.maxz${maxz2}.patch${patch_size}.stride${stride}.scales${scales//,/}.k0${k0}.k${k}
 
@@ -104,7 +112,7 @@ done
 meshx_dependency=
 for z in $(seq $minz $nslices $maxz); do
     metadata=$((z==minz))
-    maxz2=$(( z+nslices > maxz ? maxz : z+nslices ))
+    maxz2=$(( z+nslices-1 > maxz ? maxz : z+nslices-1 ))
 
     params=minz${z}.maxz${maxz2}.patch${patch_size}.stride${stride}.scales${scales//,/}.k0${k0}.k${k}
 
@@ -134,7 +142,7 @@ invmapX_dependency=${invmapX_dependency}done\($jobid\)'&&'
 warp_dependency=
 for z in $(seq $minz $nslices $maxz); do
     metadata=$((z==minz))
-    maxz2=$(( z+nslices > maxz ? maxz : z+nslices ))
+    maxz2=$(( z+nslices-1 > maxz ? maxz : z+nslices-1 ))
 
     params=minz${z}.maxz${maxz2}.patch${patch_size}.stride${stride}.scales${scales//,/}.k0${k0}.k${k}
 
