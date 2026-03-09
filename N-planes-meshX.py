@@ -176,12 +176,12 @@ main_inv = np.concatenate(main_inv, axis=1)
 print(datetime.now(), 'loading inverted last')
 z_map = {}
 iz = 0
-last_inv = []
+last_inv = [np.zeros_like(main[:, 0:1, ...])]
 minz0 = (minz // nslices) * nslices
 for z in range(minz0, maxz + 1, nslices):
     minz2 = max(z, minz)
-    maxz2 = min(z + nslices - 1, maxz)
-    z_map[str(maxz2-minz)] = iz
+    maxz2 = min(z + nslices - 1, maxz-1)
+    z_map[str(maxz2-minz+1)] = iz
     iz += 1
     last_inv.append(np.zeros_like(main[:, 0:(maxz2-minz2), ...]))
     last_inv.append(data.load_invmap(basepath, params, maxz2+1, maxz2+1, False))
