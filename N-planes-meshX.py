@@ -159,34 +159,35 @@ xblk_inv = map_utils.invert_map(xblk_upsampled, map_box, map_box, stride_int_min
                                 parallelism=None, verbose=True)
 
 print(datetime.now(), 'loading main and inverted main')
-main = []
-main_inv = []
+main_shape = (xblock_flow.shape[0], maxz - minz + 1, *xblock_flow.shape[2:])
+main = np.zeros(main_shape, dtype=xblock_flow.dtype)
+main_inv = np.zeros(main_shape, dtype=xblock_flow.dtype)
+
+idx = 0
 minz0 = (minz // nslices) * nslices
 for z in range(minz0, maxz + 1, nslices):
     minz2 = max(z, minz)
     maxz2 = min(z + nslices - 1, maxz)
-    main.append(np.zeros_like(xblock_flow[:, 0:1, ...]))
-    main.append(data.load_mesh(basepath, params, minz2+1, maxz2, False))
-    main_inv.append(np.zeros_like(xblock_flow[:, 0:1, ...]))
-    main_inv.append(data.load_invmap(basepath, params, minz2+1, maxz2, False))
-
-main = np.concatenate(main, axis=1)
-main_inv = np.concatenate(main_inv, axis=1)
+    idx += 1
+    chunk_size = maxz2 - minz2
+    if chunk_size > 0:
+        main[:, idx:idx+chunk_size, ...] = data.load_mesh(basepath, params, minz2+1, maxz2, False)
+        main_inv[:, idx:idx+chunk_size, ...] = data.load_invmap(basepath, params, minz2+1, maxz2, False)
+        idx += chunk_size
 
 print(datetime.now(), 'loading inverted last')
-z_map = {}
-iz = 0
-last_inv = [np.zeros_like(main[:, 0:1, ...])]
-minz0 = (minz // nslices) * nslices
-for z in range(minz0, maxz + 1, nslices):
-    minz2 = max(z, minz)
-    maxz2 = min(z + nslices - 1, maxz-1)
-    z_map[str(maxz2-minz+1)] = iz
-    iz += 1
-    last_inv.append(np.zeros_like(main[:, 0:(maxz2-minz2), ...]))
-    last_inv.append(data.load_invmap(basepath, params, maxz2+1, maxz2+1, False))
+last_inv = np.zeros((main.shape[0], maxz - minz + 1, *main.shape[2:]), dtype=main.dtype)
 
-last_inv = np.concatenate(last_inv, axis=1)
+z_map = {}
+minz0 = (minz // nslices) * nslices
+idx = 1
+for iz, z in enumerate(range(minz0, maxz + 1, nslices)):
+    minz2 = max(z, minz)
+    maxz2 = min(z + nslices - 1, maxz - 1)
+    z_map[str(maxz2 - minz + 1)] = iz
+    idx += (maxz2 - minz2)
+    last_inv[:, idx:idx+1, ...] = data.load_invmap(basepath, params, maxz2+1, maxz2+1, False)
+    idx += 1
 
 class ReconcileCrossBlockMaps(maps.ReconcileCrossBlockMaps):
   def _open_volume(self, path: str):
