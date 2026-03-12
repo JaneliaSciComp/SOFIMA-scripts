@@ -4,9 +4,6 @@
 
 # a derivative of https://github.com/google-research/sofima/blob/main/notebooks/em_alignment.ipynb
 
-# this second part just does the GPU intensive stuff.  it depends on the
-# output of N-planes-flow.py
-
 import sys
 import os
 import argparse
@@ -118,7 +115,7 @@ minz0 = (minz // nslices) * nslices
 for z in range(minz0, maxz + 1, nslices):
     minz2 = max(z, minz)
     maxz2 = min(z + nslices - 1, maxz)
-    xblock_flow.append(data.load_mesh(basepath, params, maxz2+1, maxz2+1, False))
+    xblock_flow.append(data.load_mesh(basepath, params, maxz2+1, maxz2+1, ""))
 
 xblock_flow = np.concatenate(xblock_flow, axis=1)
 
@@ -158,67 +155,10 @@ print(datetime.now(), 'inverting xblocks')
 xblk_inv = map_utils.invert_map(xblk_upsampled, map_box, map_box, stride_int_min,
                                 parallelism=None, verbose=True)
 
-print(datetime.now(), 'loading main and inverted main')
-main_shape = (xblock_flow.shape[0], maxz - minz + 1, *xblock_flow.shape[2:])
-main = np.zeros(main_shape, dtype=xblock_flow.dtype)
-main_inv = np.zeros(main_shape, dtype=xblock_flow.dtype)
+print(datetime.now(), 'writing meshXcoarse')
+data.save_mesh_coarse(xblk_upsampled, basepath, params, "Xcoarse")
 
-idx = 0
-minz0 = (minz // nslices) * nslices
-for z in range(minz0, maxz + 1, nslices):
-    minz2 = max(z, minz)
-    maxz2 = min(z + nslices - 1, maxz)
-    idx += 1
-    chunk_size = maxz2 - minz2
-    if chunk_size > 0:
-        main[:, idx:idx+chunk_size, ...] = data.load_mesh(basepath, params, minz2+1, maxz2, False)
-        main_inv[:, idx:idx+chunk_size, ...] = data.load_invmap(basepath, params, minz2+1, maxz2, False)
-        idx += chunk_size
+print(datetime.now(), 'writing meshXcoarse_inv')
+data.save_mesh_coarse(xblk_inv, basepath, params, "Xcoarse_inv")
 
-print(datetime.now(), 'loading inverted last')
-last_inv = np.zeros((main.shape[0], maxz - minz + 1, *main.shape[2:]), dtype=main.dtype)
-
-z_map = {}
-minz0 = (minz // nslices) * nslices
-idx = 1
-for iz, z in enumerate(range(minz0, maxz + 1, nslices)):
-    minz2 = max(z, minz)
-    maxz2 = min(z + nslices - 1, maxz - 1)
-    z_map[str(maxz2 - minz + 1)] = iz
-    idx += (maxz2 - minz2)
-    last_inv[:, idx:idx+1, ...] = data.load_invmap(basepath, params, maxz2+1, maxz2+1, False)
-    idx += 1
-
-class ReconcileCrossBlockMaps(maps.ReconcileCrossBlockMaps):
-  def _open_volume(self, path: str):
-    if path == 'main_inv':
-      return main_inv
-    elif path == 'last_inv':
-      return last_inv
-    elif path == 'xblk':
-      return xblk_upsampled
-    elif path == 'xblk_inv':
-      return xblk_inv
-    else:
-      raise ValueError(f'Unknown volume {path}')
-
-config = maps.ReconcileCrossBlockMaps.Config(
-    cross_block='xblk',
-    cross_block_inv='xblk_inv',
-    last_inv='last_inv',
-    main_inv='main_inv',
-    z_map=z_map,
-    stride=stride_int_min,
-    xy_overlap=0)
-
-print(datetime.now(), 'reconciling')
-reconcile = ReconcileCrossBlockMaps(config)
-reconcile.set_effective_subvol_and_overlap(map_box.size, (0, 0, 0))
-main_box = bounding_box.BoundingBox(start=(0, 0, 0),
-                                    size=(*main.shape[2:][::-1], maxz-minz+1))
-global_map = reconcile.process(subvolume.Subvolume(main, main_box), verbose=True)
-
-print(datetime.now(), 'writing meshX')
-fid = data.create_mesh(global_map.shape, basepath, params, 1, True)
-for z in range(minz, maxz+1):
-    data.write_mesh_plane(fid, global_map.data[:,z-minz:z-minz+1,:,:], z)
+print(datetime.now(), 'finished!')

@@ -123,7 +123,7 @@ origin = jnp.array([0., 0.])
 s_min = min(scales_int)
 stride_scale_min = stride_int_min * (2**s_min)
 
-fid = data.create_mesh(solved.shape, basepath, params, write_metadata, False)
+fid = data.create_mesh(solved.shape, basepath, params, write_metadata, "")
 
 print(datetime.now(), 'composing maps')
 for z in range(z0+1, z1+2) if z0 < z1 else range(z0-1, z1-2, -1):

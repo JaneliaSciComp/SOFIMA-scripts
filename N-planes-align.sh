@@ -109,7 +109,7 @@ for z in $(seq $minz0 $nslices $maxz); do
 done
 
 # invmap
-meshx_dependency=
+meshXcoarse_dependency=
 for z in $(seq $minz $nslices $maxz); do
     metadata=$((z==minz))
     maxz2=$(( z+nslices-1 > maxz ? maxz : z+nslices-1 ))
@@ -123,22 +123,32 @@ for z in $(seq $minz $nslices $maxz); do
         conda run -n multi-sem --no-capture-output \
         python -u ./N-planes-invmap.py $data_loader $basepath $z $maxz2 $patch_size $stride $scales $k0 $k $nslices $metadata 0`
     jobid=`expr match "$bsub_stdout" "$jobid_regex"`
-    meshx_dependency=${meshx_dependency}done\($jobid\)'&&'
+    meshXcoarse_dependency=${meshXcoarse_dependency}done\($jobid\)'&&'
 done
 
 params=minz${minz}.maxz${maxz}.patch${patch_size}.stride${stride}.scales${scales//,/}.k0${k0}.k${k}
 
-# meshX
-invmapX_dependency=
-bsub_flags=(-Pcellmap -n32 -gpu "num=1" -q gpu_l4_large -W 10080)
-logfile=$basepath/meshX.${params}.log
-bsub_stdout=`bsub ${bsub_flags[@]} -oo $logfile -w ${meshx_dependency%&&} \
+# meshXcoarse
+meshXfine_dependency=
+bsub_flags=(-Pcellmap -n8 -gpu "num=1" -q gpu_l4 -W 10080)
+logfile=$basepath/meshXcoarse.${params}.log
+bsub_stdout=`bsub ${bsub_flags[@]} -oo $logfile -w ${meshXcoarse_dependency%&&} \
     conda run -n multi-sem --no-capture-output \
-    python -u ./N-planes-meshX.py $data_loader $basepath $minz $maxz $patch_size $stride $scales $k0 $k $nslices`
+    python -u ./N-planes-meshXcoarse.py $data_loader $basepath $minz $maxz $patch_size $stride $scales $k0 $k $nslices`
+jobid=`expr match "$bsub_stdout" "$jobid_regex"`
+meshXfine_dependency=${meshXfine_dependency}done\($jobid\)'&&'
+
+# meshXfine
+invmapX_dependency=
+bsub_flags=(-Pcellmap -n16 -gpu "num=1" -q gpu_l4_large -W 10080)
+logfile=$basepath/meshXfine.${params}.log
+bsub_stdout=`bsub ${bsub_flags[@]} -oo $logfile -w ${meshXfine_dependency%&&} \
+    conda run -n multi-sem --no-capture-output \
+    python -u ./N-planes-meshXfine.py $data_loader $basepath $minz $maxz $patch_size $stride $scales $k0 $k $nslices`
 jobid=`expr match "$bsub_stdout" "$jobid_regex"`
 invmapX_dependency=${invmapX_dependency}done\($jobid\)'&&'
 
-# invmap
+# invmapX
 warp_dependency=
 for z in $(seq $minz $nslices $maxz); do
     metadata=$((z==minz))
