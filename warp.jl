@@ -92,7 +92,7 @@ function warp_slab(warped, ccurr, zs)
     iz = findfirst(x->all(in.(zs,Ref(x[3]))), DiskArrays.eachchunk(warped)[1,1,:])
     chunks = DiskArrays.eachchunk(warped)[:,:,iz]
     p = Progress(prod(size(chunks)))
-    Threads.@threads :greedy for i in 1:maximum(size(chunks))^2
+    Threads.@threads :greedy for i in 1:cartesian2morton([size(chunks)...])
         ix, iy = morton2cartesian(i)
         (ix > size(chunks,1) || iy > size(chunks,2)) && continue
         chunk = chunks[ix,iy]
