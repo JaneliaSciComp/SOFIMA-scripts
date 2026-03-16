@@ -123,31 +123,26 @@ main_shape = (xblk_upsampled.shape[0], maxz - minz + 1, *xblk_upsampled.shape[2:
 main = np.zeros(main_shape, dtype=xblk_upsampled.dtype)
 main_inv = np.zeros(main_shape, dtype=xblk_upsampled.dtype)
 
-idx = 0
 minz0 = (minz // nslices) * nslices
 for z in range(minz0, maxz + 1, nslices):
     minz2 = max(z, minz)
     maxz2 = min(z + nslices - 1, maxz)
-    idx += 1
-    chunk_size = maxz2 - minz2
-    if chunk_size > 0:
-        main[:, idx:idx+chunk_size, ...] = data.load_mesh(basepath, params, minz2+1, maxz2, "")
-        main_inv[:, idx:idx+chunk_size, ...] = data.load_invmap(basepath, params, minz2+1, maxz2, False)
-        idx += chunk_size
+    istart = minz2 + 1 - minz
+    iend = maxz2 + 1 - minz
+    main[:, istart:iend, ...] = data.load_mesh(basepath, params, minz2+1, maxz2, "")
+    main_inv[:, istart:iend, ...] = data.load_invmap(basepath, params, minz2+1, maxz2, False)
 
 print(datetime.now(), 'loading inverted last')
 last_inv = np.zeros((main.shape[0], maxz - minz + 1, *main.shape[2:]), dtype=main.dtype)
 
 z_map = {}
 minz0 = (minz // nslices) * nslices
-idx = 1
 for iz, z in enumerate(range(minz0, maxz + 1, nslices)):
     minz2 = max(z, minz)
     maxz2 = min(z + nslices - 1, maxz - 1)
-    z_map[str(maxz2 - minz + 1)] = iz
-    idx += (maxz2 - minz2)
-    last_inv[:, idx:idx+1, ...] = data.load_invmap(basepath, params, maxz2+1, maxz2+1, False)
-    idx += 1
+    itarget = maxz2 - minz + 1
+    z_map[str(itarget)] = iz+1
+    last_inv[:, itarget:itarget+1, ...] = data.load_invmap(basepath, params, maxz2+1, maxz2+1, False)
 
 class ReconcileCrossBlockMaps(maps.ReconcileCrossBlockMaps):
   def _open_volume(self, path: str):
