@@ -53,6 +53,31 @@ parser.add_argument(
     help="upper bound on the planes to align"
 )
 parser.add_argument(
+    "scale",
+    type=int,
+    help="",
+)
+parser.add_argument(
+    "high_pass",
+    type=int,
+    help="",
+)
+parser.add_argument(
+    "uniform",
+    type=int,
+    help="",
+)
+parser.add_argument(
+    "threshold",
+    type=int,
+    help="",
+)
+parser.add_argument(
+    "close",
+    type=int,
+    help="",
+)
+parser.add_argument(
     "patch_size",
     type=str,
     help="Side length of (square) patch for processing (in pixels, e.g., 32)",
@@ -93,6 +118,11 @@ data_loader = args.data_loader
 basepath = args.basepath
 min_z = args.min_z
 max_z = args.max_z
+scale = args.scale
+high_pass = args.high_pass
+uniform = args.uniform
+threshold = args.threshold
+close = args.close
 patch_size = args.patch_size
 stride = args.stride
 scales = args.scales
@@ -105,6 +135,11 @@ print("data_loader =", data_loader)
 print("basepath =", basepath)
 print("min_z =", min_z)
 print("max_z =", max_z)
+print("scale =", scale)
+print("high_pass =", high_pass)
+print("uniform =", uniform)
+print("threshold =", threshold)
+print("close =", close)
 print("patch_size =", patch_size)
 print("stride =", stride)
 print("scales =", scales)
@@ -123,27 +158,40 @@ if len(patch_size_int) != len(stride_int):
 
 data = importlib.import_module(os.path.basename(data_loader))
 
+params = 'scale'+str(scale)+'.high_pass'+str(high_pass)+'.uniform'+str(uniform)+'.threshold'+str(threshold)+'.close'+str(close)
+
 def _compute_flow(scales, patch_size, stride, prev_flows=None, pre_stride=None):
   mfc = flow_field.JAXMaskedXCorrWithStatsCalculator()
   flows = {s:[] for s in scales}
   _prev = data.load_data(basepath, min_z, 0)
   prev = {s:_prev if s==0 else downscale_local_mean(_prev, (2**s,2**s)) for s in scales}
-  if 0 not in scales:  del _prev
+  _prev_mask = data.load_mask(basepath, params, min_z)
+  prev_mask = {s:_prev_mask if s==0 or _prev_mask is None else _prev_mask[::2**s,::2**s] for s in scales}
+  if 0 not in scales:
+    del _prev
+    del _prev_mask
 
   fs = []
+  fs_mask = []
   with futures.ThreadPoolExecutor() as tpe:
     # Prefetch the next sections to memory so that we don't have to wait for them
     # to load when the GPU becomes available.
     for z in range(min_z+1, max_z+1):
-      fs.append(tpe.submit(lambda z=z: data.load_data(basepath, z,0)))
+      fs.append(tpe.submit(lambda z=z: data.load_data(basepath, z, 0)))
+      fs_mask.append(tpe.submit(lambda z=z: data.load_mask(basepath, params, z)))
 
     fs = fs[::-1]
+    fs_mask = fs_mask[::-1]
 
     for z in range(min_z+1, max_z+1):
       print(datetime.now(), 'z =', z)
       _curr = fs.pop().result()
       curr = {s:_curr if s==0 else downscale_local_mean(_curr, (2**s,2**s)) for s in scales}
-      if 0 not in scales:  del _curr
+      _curr_mask = fs_mask.pop().result()
+      curr_mask = {s:_curr_mask if s==0 or _curr_mask is None else _curr_mask[::2**s,::2**s] for s in scales}
+      if 0 not in scales:
+        del _curr
+        del _curr_mask
 
       # The batch size is a parameter which impacts the efficiency of the computation (but
       # not its result). It has to be large enough for the computation to fully utilize the
@@ -153,6 +201,9 @@ def _compute_flow(scales, patch_size, stride, prev_flows=None, pre_stride=None):
                                          (patch_size, patch_size),
                                          (stride, stride),
                                          batch_size = batch_size,
+                                         pre_mask = prev_mask[s],
+                                         post_mask = curr_mask[s],
+                                         mask_only_for_patch_selection=True,
                                          pre_targeting_field = prev_flows[s][z-(min_z+1)][:2, ::] if prev_flows else None,
                                          pre_targeting_step = (pre_stride, pre_stride) if pre_stride else None))
       prev = curr
@@ -166,6 +217,7 @@ for i in range(1, len(patch_size_int)):
     fNx = _compute_flow(scales_int, patch_size_int[i], stride_int[i], fNx, stride_int[i-1])
     print("sum of flows = ", sum([np.nansum(np.abs(x)) for x in fNx.values()]))
 
+print(datetime.now(), 'cleaning flow')
 fN = {}
 for s in scales_int:
     # Convert to [channels, z, y, x].
@@ -215,7 +267,7 @@ plt.tight_layout()
 plt.savefig("flows-f.tif", dpi=600)
 '''
 
-print(datetime.now(), 'resampling maps')
+print(datetime.now(), 'reconciling flow')
 
 from scipy import interpolate
 

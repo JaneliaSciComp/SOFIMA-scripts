@@ -2,22 +2,27 @@
 
 # launches dependent cluster jobs for each step needed to align a stack of N planes
 
-# usage: ./N-planes-align.sh <data-loader> <basepath> <min-z> <max-z> <patch-sizes> <strides> <scales> <k0> <k> <batch-size> <chunkxy-size> <chunkz-size> <num-slices-per-job>
-# e.g. ./N-planes-align.sh "data-aphid-N-planes" /nrs/cellmap/arthurb/aphid/stitch.patch16.stride8.scale1.k00.01.k0.1.crop0-0.margin100 10770 10772 100,50 20,10 1,2 0.01 0.1 2048 1024 2 4
+# usage: ./N-planes-align.sh <data-loader> <basepath> <min-z> <max-z> <scale> <high_pass> <uniform> <threshold> <close> <patch-sizes> <strides> <scales> <k0> <k> <batch-size> <chunkxy-size> <chunkz-size> <num-slices-per-job>
+# e.g. ./N-planes-align.sh "data-aphid-N-planes" /nrs/cellmap/arthurb/aphid/stitch.patch16.stride8.scale1.k00.01.k0.1.crop0-0.margin100 10770 10772 2 3 10 2 15 100,50 20,10 1,2 0.01 0.1 2048 1024 2 4
 
 data_loader=$1
 basepath=$2
 minz=$3
 maxz=$4
-patch_size=$5
-stride=$6
-scales=$7
-k0=$8
-k=$9
-batch_size=${10}
-chunkxy=${11}
-chunkz=${12}
-nslices=${13}  # integer multiple of chunkz
+scale=$5
+high_pass=$6
+uniform=$7
+threshold=$8
+close=$9
+patch_size=${10}
+stride=${11}
+scales=${12}
+k0=${13}
+k=${14}
+batch_size=${15}
+chunkxy=${16}
+chunkz=${17}
+nslices=${18}  # integer multiple of chunkz
 
 if (( nslices % chunkz != 0 )) ; then
     echo nslices must be an integer multiple of chunkz
@@ -25,6 +30,35 @@ if (( nslices % chunkz != 0 )) ; then
 fi
 
 jobid_regex='Job <\([0-9]*\)> '
+
+# mask
+params=minz${minz}.maxz${maxz}.scale${scale}.high_pass${high_pass}.uniform${uniform}.threshold${threshold}.close${close}
+bsub_flags=(-Pcellmap -W 10080)
+logfile=$basepath/mask.${params}.log
+bsub_stdout=`bsub ${bsub_flags[@]} -oo $logfile \
+    julia -e "include(\"${data_loader}.jl\"); \
+              curr = load_data(\"$basepath\", 0); \
+              params = string(\"scale\", \"$scale\", \".high_pass\", \"$high_pass\", \".uniform\", \"$uniform\", \".threshold\", \"$threshold\", \".close\", \"$close\"); \
+              create_mask(size(curr), $chunkxy, \"$basepath\", params)"`
+jobid=`expr match "$bsub_stdout" "$jobid_regex"`
+mask_dependency=done\($jobid\)
+
+flow_dependency=
+for z in $(seq $minz $nslices $maxz); do
+    metadata=$((z==minz))
+    maxz2=$(( z+nslices-1 > maxz ? maxz : z+nslices-1 ))
+
+    params=minz${z}.maxz${maxz2}.scale${scale}.high_pass${high_pass}.uniform${uniform}.threshold${threshold}.close${close}
+
+    # n1 for 10 planes, n4 for 100 planes
+    bsub_flags=(-Pcellmap -n1 -W 1440)
+    logfile=$basepath/mask.${params}.log
+    grep -lqs Successfully $logfile && continue
+    bsub_stdout=`bsub ${bsub_flags[@]} -oo $logfile -w ${mask_dependency} \
+        julia ./N-planes-mask.jl ${data_loader}.jl $basepath $z $maxz2 $scale $high_pass $uniform $threshold $close`
+    jobid=`expr match "$bsub_stdout" "$jobid_regex"`
+    flow_dependency=${flow_dependency}done\($jobid\)'&&'
+done
 
 # flow
 mesh_dependency=
@@ -38,9 +72,9 @@ for z in $(seq $minz $nslices $maxz); do
     bsub_flags=(-Pcellmap -n2 -gpu "num=1" -q gpu_l4 -W 1440)
     logfile=$basepath/flow.${params}.log
     grep -lqs Successfully $logfile && continue
-    bsub_stdout=`bsub ${bsub_flags[@]} -oo $logfile \
+    bsub_stdout=`bsub ${bsub_flags[@]} -oo $logfile -w ${flow_dependency%&&} \
         conda run -n multi-sem --no-capture-output \
-        python -u ./N-planes-flow.py $data_loader $basepath $z $maxz2 $patch_size $stride $scales $k0 $k $batch_size $metadata`
+        python -u ./N-planes-flow.py $data_loader $basepath $z $maxz2 $scale $high_pass $uniform $threshold $close $patch_size $stride $scales $k0 $k $batch_size $metadata`
     jobid=`expr match "$bsub_stdout" "$jobid_regex"`
     mesh_dependency=${mesh_dependency}done\($jobid\)'&&'
 done

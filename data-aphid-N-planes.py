@@ -7,6 +7,14 @@ import tensorstore as ts
 
 url='http://em-services-1.int.janelia.org:8080/render-ws/v1/owner/cellmap/project/jrc_aphid_salivary_1/stack/v3_acquire'
 
+def load_mask(basepath, params, z):
+    za = ts.open({
+        'driver': 'zarr',
+        'kvstore': {"driver":"file", "path":os.path.join(basepath, 'mask.'+params+'.zarr')},
+        'open': True,
+        }).result()
+    return za[z,:,:].read().result()
+
 def load_data(basepath, z, s):
     za = ts.open({
         'driver': 'zarr',
